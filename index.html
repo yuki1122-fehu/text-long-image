@@ -109,6 +109,17 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:22px; hei
 .slice-item button{background:var(--panel2); border:1px solid var(--line); color:var(--tx2); border-radius:8px; padding:5px 12px; font-size:12px; cursor:pointer;}
 .slice-item button:active{color:var(--acc); border-color:var(--acc);}
 .note{font-size:11.5px; color:var(--tx2); opacity:.8; line-height:1.7; margin-top:8px;}
+input[type=password]{
+  width:100%; background:var(--panel2); border:1px solid var(--line); border-radius:10px;
+  color:var(--tx); font-size:16px; padding:10px 12px; outline:none; font-family:inherit;
+}
+input[type=password]:focus{border-color:var(--acc);}
+/* AI 运行中：按钮禁用 + 状态行左侧脉冲条 */
+#btnAiRun:disabled{opacity:.45; cursor:default;}
+#aiStatus.busy{border-left:3px solid var(--acc); padding-left:8px; color:var(--tx);}
+@keyframes aiPulse{0%,100%{opacity:.35}50%{opacity:1}}
+#aiStatus.busy::before{content:'●'; color:var(--acc); margin-right:5px; animation:aiPulse 1s ease-in-out infinite;}
+#aiStatus.ok{color:var(--acc);} #aiStatus.bad{color:var(--danger);} #aiStatus.info{color:var(--tx2);}
 .fold{border:1px dashed var(--line); border-radius:10px; padding:10px 12px; margin-top:12px;}
 .fold-h{display:flex; justify-content:space-between; align-items:center; font-size:13px; color:var(--tx); cursor:pointer; font-weight:600;}
 .fold-body{display:none; margin-top:10px;}
@@ -154,6 +165,31 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:22px; hei
   </nav>
 
   <div class="panel on" id="panel-text">
+    <div class="fold" id="foldAI">
+      <div class="fold-h"><span>✨ AI 智能排版</span><span class="arw">›</span></div>
+      <div class="fold-body">
+        <div class="note" style="margin-top:0">AI 会读你的正文，自动判断哪里该是标题、引用、金句，加粗重点、标出层次，并挑选合适的版式与配色。结果填回下方文本框，<b>你可以继续手动改</b>。</div>
+        <div class="row"><div class="lab"><b>AI 接口 Key</b><span class="val" id="vAiKey">未设置</span></div>
+          <input type="password" id="inAiKey" placeholder="sk-...（DeepSeek API Key）" autocomplete="off">
+          <div class="note">Key 只存在这台设备的浏览器里，不上传服务器。换设备要重新填。</div>
+        </div>
+        <div class="row"><div class="lab"><b>排版风格</b></div>
+          <div class="seg" id="segAiStyle" style="flex:1">
+            <button data-v="auto" class="on">自动判断</button>
+            <button data-v="essay">散文随笔</button>
+            <button data-v="note">金句卡片</button>
+            <button data-v="clean">极简阅读</button>
+          </div>
+        </div>
+        <div class="switch-row"><span>用我上传的图做配图</span><input type="checkbox" id="ckAiImg" checked></div>
+        <div class="note" id="aiImgHint">已上传 0 张底图</div>
+        <div class="mini-btns">
+          <button id="btnAiRun">✨ AI 排版</button>
+          <button id="btnAiUndo">撤销</button>
+        </div>
+        <div class="status info" id="aiStatus">未运行</div>
+      </div>
+    </div>
     <div class="row">
       <div class="lab"><b>刊头小字（可选）</b><span class="val">文艺杂志感装饰</span></div>
       <input type="text" id="inMast" placeholder="如：THE ESSAY · 2026.10" maxlength="80">
@@ -777,6 +813,24 @@ function buildLayout(ctx){
     if(extraGap > 0 && L.bodyLines.length){
       L.bodyLines[L.bodyLines.length-1].gapAfter += extraGap; extraGap = 0;
     }
+    /* IMG:N —— AI 分配的插图（编号对应 userImgs）。整幅图作为一个行块插进正文流。 */
+    var imgM = /^\s*IMG:\s*(\d+)\s*$/i.exec(raw);
+    if(imgM){
+      var idx = parseInt(imgM[1], 10) - 1;
+      if(idx >= 0 && idx < userImgs.length){
+        var im = userImgs[idx];
+        var iw = im.naturalWidth || im.width || 1, ih = im.naturalHeight || im.height || 1;
+        var boxW = avail;
+        var boxH = Math.round(boxW * (ih / iw));
+        /* 单图最高不超过 1.35 倍正文宽度对应的方形区域，避免长图被一张图撑爆 */
+        var maxH = Math.round(avail * 1.35);
+        if(boxH > maxH){ boxH = maxH; boxW = Math.round(boxH * (iw / ih)); }
+        L.bodyLines.push({type:'img', src:im.src, x:m + (avail - boxW)/2, w:boxW, h:boxH,
+          gapBefore: L.bodyLines.length ? Math.round(st.bodySize*0.9) : 0,
+          gapAfter:Math.round(st.bodySize*0.9), cap:''});
+      }
+      continue;
+    }
     /* 段落级样式 + 行内富文本 */
     var pm = parseParaMark(raw);
     var pRuns = parseInline(pm.text);
@@ -973,7 +1027,45 @@ function drawLine(ctx, ln, dy, W, m, avail){
     ctx.restore();
     return;
   }
+  if(ln.type === 'img'){
+    /* AI 分配的插图：图片可能尚未 onload（切图是异步流程），
+       载入完成后会由 aiImgWait() 触发重绘，未就绪时先留白占位避免高度塌陷 */
+    var im = aiImgCache[ln.src];
+    ctx.save();
+    if(im && im.complete && im.naturalWidth){
+      ctx.drawImage(im, ln.x, dy, ln.w, ln.h);
+    }else{
+      ctx.globalAlpha = 0.06; ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(ln.x, dy, ln.w, ln.h);
+      ctx.globalAlpha = 0.5; ctx.strokeStyle = mutedColor();
+      ctx.lineWidth = Math.max(1, Math.round(1.2*st.width/1080));
+      ctx.strokeRect(ln.x + .5, dy + .5, ln.w - 1, ln.h - 1);
+    }
+    ctx.restore();
+    return;
+  }
   drawRichLine(ctx, ln, dy);
+}
+/* img 行的图片缓存：src → HTMLImageElement */
+var aiImgCache = Object.create(null);
+function aiImgWait(){
+  var srcs = (curLayout && curLayout.bodyLines ? curLayout.bodyLines : [])
+    .filter(function(l){ return l.type === 'img'; })
+    .map(function(l){ return l.src; });
+  if(!srcs.length) return Promise.resolve();
+  var jobs = srcs.map(function(s){
+    if(aiImgCache[s]) return aiImgCache[s].ready || Promise.resolve();
+    var im = new Image();
+    aiImgCache[s] = im;
+    im.ready = new Promise(function(res){ im.onload = im.onerror = function(){ res(); }; });
+    im.src = s;
+    return im.ready;
+  });
+  return Promise.all(jobs).then(function(){
+    /* 图片到位后重画一次（预览 + 已缓存的切片） */
+    drawPreview(curLayout);
+    updateStats(curLayout);
+  });
 }
 /* 竖排侧题（每张都画，杂志封面感） */
 function drawSideTitle(ctx, L, top, bottom){
@@ -1260,8 +1352,10 @@ function getMeasCtx(){
 function updateStats(L){
   var slices = computeSlices(L);
   curSlices = slices;
-  $('hdrStats').textContent = st.body.length + ' 字 · 约 ' + slices.length + ' 张';
-  $('bodyCount').textContent = st.body.length + ' 字';
+  /* 字数统计要扣掉 AI 插图标记（IMG:1 不是正文）*/
+  var plainLen = aiStripImg(st.body).length;
+  $('hdrStats').textContent = plainLen + ' 字 · 约 ' + slices.length + ' 张';
+  $('bodyCount').textContent = plainLen + ' 字';
   var maxH = 0, minH = 1e9;
   slices.forEach(function(s){ if(s.h > maxH) maxH = s.h; if(s.h < minH) minH = s.h; });
   var px = L.width * maxH;
@@ -1339,6 +1433,8 @@ function ovBar(p){ $('ovBar').style.width = Math.round(p*100) + '%'; }
 function ovHide(){ $('overlay').classList.remove('show'); }
 async function buildSliceBlob(L, slice, total){
   var bg = await ensureBgImage();
+  /* 等所有 AI 配图解码完成，否则切图会画成空白占位 */
+  if(aiImgCache) await aiImgWait();
   var c = drawSliceCanvas(L, slice, total, bg);
   var blob = await canvasToBlob(c);
   c.width = 0; c.height = 0;
@@ -1411,7 +1507,179 @@ $('btnShareAll').addEventListener('click', async function(){
   finally{ busy = false; ovHide(); updateStats(curLayout); }
 });
 
-/* ================= UI ================= */
+/* ================= AI 智能排版 =================
+   设计要点：AI 只输出「标记语言」，不输出排版参数 JSON。
+   标记语言（# / ## / > / - / ** / {{色值}}）是本引擎本来就认的语法，
+   解析后与手写输入走完全相同的渲染路径 —— 好处是：
+     1) 零侵入渲染层，不会因为 AI 输出畸形而画错版
+     2) 结果对用户完全透明、可继续手动修改
+     3) AI 挂了也不影响手动排版
+   配图：AI 只能从「用户已上传的图」里挑，指定插到哪一段之前。
+   纯前端无法联网检索图片，AI 自己找图做不到（且图库有版权风险）。 */
+var AI_KEY_LS = 'textlongimg-aikey';
+var AI_MODEL = 'deepseek-chat';
+var AI_API = 'https://api.deepseek.com/chat/completions';
+var aiUndoStack = [], aiBusy = false;
+
+function aiGetKey(){ try{ return localStorage.getItem(AI_KEY_LS) || ''; }catch(e){ return ''; } }
+function aiSetKey(k){
+  try{ k ? localStorage.setItem(AI_KEY_LS, k) : localStorage.removeItem(AI_KEY_LS); }catch(e){}
+}
+
+var AI_STYLE_DESC = {
+  auto:  '你自己判断：这是一篇什么文体、什么情绪、给谁看，再决定排版。跟随内容气质，不要一律用同一种样式。',
+  essay: '散文随笔：舒展、留白多、行距松。适合情感、随感、回忆类文字。',
+  note:  '金句卡片：把最有力的句子单独提成小标题或引用，短句错落，有节奏感。',
+  clean: '极简阅读：几乎不用装饰，层次只靠字号和空距拉开，安静克制。'
+};
+
+/* 让模型按这套标记语言输出。刻意写得很死，并用 few-shot 锁死行为。 */
+var AI_PROMPT = [
+'你是一位中文长图排版专家。你的任务是把用户给的正文，重排成适合手机长图阅读的标记文本。',
+'',
+'【你只能使用下面这些标记，不要发明别的】',
+'  # 文字      → 大标题（用于全文主标题，或每个大章节的开头，一篇最多 2 个）',
+'  ## 文字     → 小标题（用于小节，3~5 个为宜）',
+'  > 文字      → 引用块（用于金句、感悟、需要强调的独白）',
+'  - 文字      → 列表项（用于并列的短句、要点、清单）',
+'  **文字**    → 加粗（用于关键论点、结论、情绪落点。每 300 字最多 1 处，不要滥用）',
+'  {{RRGGBB}}文字{{/}} → 变色（仅在确实需要强调时用，最多 1~2 处）',
+'  空行        → 分段。不要用连续三个以上空行。',
+'',
+'【硬性要求】',
+'  1. 不要改动、不要删减、不要重写原句的措辞。只允许重新分段、加标记、调整顺序（若原文有明显笔误可修正）。',
+'  2. 不要输出解释、不要输出前言后语、不要用代码块包裹。只输出排版后的正文本身。',
+'  3. 原文没有标题时，若第一句像标题（短、有力）可提为 # ，否则不要硬造标题。',
+'',
+'【额外输出一行版式建议】',
+'  正文全部输出完后，另起一行，单独写：',
+'  <!--FIT:preset,template,rule,orn,footer,font-->',
+'  这行注释里填 6 个值，逗号分隔，必须从下面这些值里选：',
+'    preset(版式): plain | magazine | essay | dropcap | narrow | sidebar | mast | verse',
+'    template(配色): pine | paper | white | ink | kraft | dusk | blossom | bamboo',
+'    rule(标题线): none | under | top-bottom | under-short | double | leftbar',
+'    orn(段落间隔符): none | diamond | dot | line',
+'    footer(页脚): none | plain | rule | corner',
+'    font(字体): song | hei | kai | fang | yuan',
+].join('\n');
+
+/* 图片指令：让模型只从用户给的编号里挑 */
+function aiImgPrompt(imgCount){
+  return [
+'',
+'【配图】',
+'  用户已经上传了 ' + imgCount + ' 张图，正文中用 IMG:N 标记插图位置（N 是图片编号，从 1 开始）：',
+'    - 在需要视觉呼吸的位置插入 IMG:N，引擎会把这张图整幅放进长图里',
+'    - 最多插 2~3 处，宁缺毋滥；找不到合适位置就一张都不插',
+'    - 配图要服务于内容节奏，不要打断连贯的段落',
+'  插图标记单独占一行。'
+  ].join('\n');
+}
+
+function aiBuildMessages(text, style, imgCount){
+  var sys = AI_PROMPT + '\n' + AI_STYLE_DESC[style] + (imgCount ? aiImgPrompt(imgCount) : '');
+  return [{role:'system', content:sys}, {role:'user', content:text}];
+}
+
+async function aiCall(messages, onDelta){
+  var key = aiGetKey();
+  if(!key) throw new Error('还没填 API Key');
+  var res = await fetch(AI_API, {
+    method:'POST',
+    headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + key},
+    body: JSON.stringify({model: AI_MODEL, messages: messages, stream: true, temperature: 0.6})
+  });
+  if(!res.ok){
+    var t = '';
+    try{ t = (await res.json()).error?.message || ''; }catch(e){}
+    if(res.status === 401) throw new Error('API Key 无效或已过期');
+    if(res.status === 402) throw new Error('账户余额不足');
+    if(res.status === 429) throw new Error('请求太频繁，稍后再试');
+    throw new Error('接口报错 ' + res.status + (t ? '：' + t : ''));
+  }
+  /* SSE 流式解析 */
+  var reader = res.body.getReader(), dec = new TextDecoder(), buf = '', full = '';
+  while(true){
+    var r = await reader.read();
+    if(r.done) break;
+    buf += dec.decode(r.value, {stream:true});
+    var parts = buf.split('\n');
+    buf = parts.pop();
+    for(var i=0;i<parts.length;i++){
+      var ln = parts[i].trim();
+      if(!ln || ln.charAt(0) !== 'd') continue;
+      try{
+        var j = JSON.parse(ln.slice(1));
+        var c = j.choices?.[0]?.delta?.content;
+        if(c){ full += c; onDelta(full); }
+      }catch(e){}
+    }
+  }
+  return full;
+}
+
+/* 拆出 <!--FIT:...--> 这行，其余是排版后的正文 */
+function aiParse(out){
+  var m = out.match(/<!--\s*FIT:([^\n]*?)\s*-->/i);
+  var fit = {};
+  if(m){
+    var seg = m[1].split(',').map(function(s){ return s.trim(); });
+    var keys = ['preset','template','rule','orn','footer','font'];
+    keys.forEach(function(k, i){ if(seg[i]) fit[k] = seg[i]; });
+  }
+  var body = out.replace(/<!--\s*FIT:[^\n]*?\s*-->/gi, '').replace(/^\s*\n+/, '').trim();
+  return {body: body, fit: fit, hasImg: aiCountImg(body) > 0};
+}
+
+/* 只接受引擎认识的取值，防止模型给了非法值把渲染搞坏 */
+function aiApplyFit(fit){
+  if(!fit) return [];
+  var applied = [];
+  if(fit.preset && PRESETS[fit.preset]){ applyPresetTo(st, fit.preset); applied.push('版式'); }
+  if(fit.template && TEMPLATES.some(function(t){ return t.id === fit.template; })){
+    var t = TEMPLATES.find(function(x){ return x.id === fit.template; });
+    st.tpl = t.id; st.c = {bg:t.bg, text:t.text, title:t.title}; applied.push('配色');
+  }
+  if(fit.rule && ['none','under','top-bottom','under-short','double','leftbar'].indexOf(fit.rule) >= 0){
+    st.rule = fit.rule; applied.push('标题线');
+  }
+  if(fit.orn && ['none','diamond','dot','line'].indexOf(fit.orn) >= 0){ st.orn = fit.orn; applied.push('间隔符'); }
+  if(fit.footer && ['none','plain','rule','corner'].indexOf(fit.footer) >= 0){ st.footer = fit.footer; applied.push('页脚'); }
+  if(fit.font && FONT_DEFS[fit.font]){ st.font = fit.font; applied.push('字体'); }
+  return applied;
+}
+
+function aiImgCount(){
+  return userImgs.length;
+}
+var userImgs = [];   /* 用户在「版式」页上传的底图，按上传顺序编号 */
+
+function aiSetStatus(cls, msg){ $('aiStatus').className = 'status ' + cls; $('aiStatus').textContent = msg; }
+/* IMG 标记的统一处理。
+   注意：不能用 /(^|\n)\s*IMG:\d+\s*(\n|$)/g 这种带捕获组的写法 ——
+   替换成 '$1' 时会吃掉换行符，导致相邻两行只删掉一行（实测踩过）。
+   改成「按行匹配 + 整行含换行一起删」，再折叠多余空行。 */
+var IMG_LINE_RE = /^[ \t]*IMG:[ \t]*\d+[ \t]*\n?/gm;
+function aiStripImg(text){
+  return (text || '').replace(IMG_LINE_RE, '').replace(/\n{3,}/g, '\n\n').trim();
+}
+function aiCountImg(text){
+  return (String(text || '').match(/^[ \t]*IMG:[ \t]*\d+[ \t]*$/gm) || []).length;
+}
+function aiRefreshKeyUI(){
+  var k = aiGetKey();
+  $('vAiKey').textContent = k ? '已设置（' + k.slice(0, 6) + '…）' : '未设置';
+  $('inAiKey').value = k;
+}
+function aiRefreshImgHint(){
+  var n = userImgs.length;
+  $('aiImgHint').textContent = n
+    ? '已上传 ' + n + ' 张底图，AI 可从中挑选（标记 IMG:1 / IMG:2 …）'
+    : '还没上传底图 —— AI 只能做纯文字排版';
+  $('ckAiImg').disabled = n === 0;
+  if(n === 0) $('ckAiImg').checked = false;
+}
+
 (function buildPresetChips(){
   var box = $('presetChips');
   Object.keys(PRESETS).forEach(function(id){
@@ -1685,11 +1953,22 @@ $('fileBg').addEventListener('change', function(){
       try{ url = c.toDataURL('image/jpeg', 0.72); }catch(e){}
       if(!url){ toast('这张图处理失败，换一张试试'); return; }
       if(url.length > 2600000){ toast('图片太大没能压缩成功，建议换一张较小的'); return; }
-      st.bgImg = url;
-      bgState = {src:null, img:null, ready:null};
-      showBgUI(); saveSoon();
-      ensureBgImage().then(function(){ scheduleRender(60); });
-      toast('底图已设置 ' + c.width + '×' + c.height);
+      /* 第一张当底图（整份长图铺底），之后每张都进图库供 AI 排版时分配插图 */
+      var extra = userImgs.length;
+      if(!st.bgImg){
+        st.bgImg = url;
+        bgState = {src:null, img:null, ready:null};
+        showBgUI(); saveSoon();
+        ensureBgImage().then(function(){ scheduleRender(60); });
+        toast('底图已设置 ' + c.width + '×' + c.height);
+      }else{
+        var li = new Image();
+        li.src = url;
+        userImgs.push(li);
+        aiImgCache[url] = li;
+        toast('图库第 ' + userImgs.length + ' 张已添加，AI 排版时可用');
+      }
+      aiRefreshImgHint(); scheduleRender(60);
     };
     im.onerror = function(){ toast('图片读取失败'); };
     im.src = reader.result;
@@ -1743,8 +2022,10 @@ $('btnPaste').addEventListener('click', async function(){
 $('btnClear').addEventListener('click', function(){
   if(!st.title && !st.body && !st.sign && !st.masthead){ toast('本来就是空的'); return; }
   if(!confirm('确定清空刊头、标题、正文和落款？')) return;
+  aiUndoStack.push(aiSnapshot());
   st.title = ''; st.body = ''; st.sign = ''; st.masthead = '';
   $('inMast').value = ''; $('inTitle').value = ''; $('inBody').value = ''; $('inSign').value = '';
+  aiSetStatus('info', '已清空，可点「撤销」找回');
   scheduleRender(60); saveSoon();
 });
 Array.prototype.forEach.call($('tabs').querySelectorAll('button'), function(b){
@@ -1782,8 +2063,100 @@ Array.prototype.forEach.call(document.querySelectorAll('.fold'), function(f){
   if(hd) hd.addEventListener('click', function(){ f.classList.toggle('open'); });
 });
 
+/* ================= AI 交互 ================= */
+$('inAiKey').addEventListener('input', function(){
+  aiSetKey(this.value.trim());
+  aiRefreshKeyUI();
+  /* 失焦后把光标还回输入框尾部，避免打字时光标跳到开头 */
+  if(document.activeElement === this){
+    var n = this.value.length; try{ this.setSelectionRange(n, n); }catch(e){}
+  }
+});
+Array.prototype.forEach.call($('segAiStyle').querySelectorAll('button'), function(b){
+  b.addEventListener('click', function(){
+    Array.prototype.forEach.call($('segAiStyle').querySelectorAll('button'), function(x){ x.classList.remove('on'); });
+    b.classList.add('on');
+  });
+});
+function aiCurStyle(){
+  var on = $('segAiStyle').querySelector('button.on');
+  return on ? on.dataset.v : 'auto';
+}
+/* 撤销栈：只存 AI 改动过的字段，够用且不占空间 */
+function aiSnapshot(){
+  return {body:st.body, title:st.title, preset:st.preset, tpl:st.tpl, c:clone(st.c),
+          rule:st.rule, orn:st.orn, footer:st.footer, font:st.font};
+}
+function aiRestore(s){
+  st.body = s.body; st.title = s.title; st.preset = s.preset; st.tpl = s.tpl; st.c = clone(s.c);
+  st.rule = s.rule; st.orn = s.orn; st.footer = s.footer; st.font = s.font;
+  syncUI(); scheduleRender(0); saveSoon();
+}
+$('btnAiUndo').addEventListener('click', function(){
+  if(!aiUndoStack.length){ toast('没有可撤销的 AI 排版'); return; }
+  aiRestore(aiUndoStack.pop());
+  aiSetStatus('info', '已撤销上一次 AI 排版');
+  toast('已撤销');
+});
+$('btnAiRun').addEventListener('click', async function(){
+  if(aiBusy){ toast('正在跑，稍等'); return; }
+  var key = aiGetKey();
+  if(!key){ aiSetStatus('bad', '请先在上面填 API Key'); toast('先填 API Key'); $('foldAI').classList.add('open'); $('inAiKey').focus(); return; }
+  var text = (st.body || '').trim();
+  if(text.length < 10){ aiSetStatus('bad', '正文太短，先粘一段文字再让 AI 排版'); toast('正文太短'); return; }
+  if(text.length > 12000){ aiSetStatus('bad', '正文超过 12000 字，请分段使用'); toast('正文太长，先分段'); return; }
+
+  var useImg = $('ckAiImg').checked && userImgs.length > 0;
+  aiBusy = true;
+  $('btnAiRun').disabled = true;
+  aiSetStatus('busy', 'AI 正在读你的文章…');
+  var t0 = Date.now();
+
+  try{
+    var raw = await aiCall(aiBuildMessages(text, aiCurStyle(), useImg ? userImgs.length : 0),
+      function(full){
+        /* 流式反馈：只显示已生成的字数，让用户知道在动 */
+        aiSetStatus('busy', 'AI 正在排版…已生成 ' + full.replace(/<!--[\s\S]*?-->/g,'').length + ' 字');
+      });
+    var r = aiParse(raw);
+    if(!r.body || r.body.length < 5) throw new Error('AI 返回内容为空，重试一次');
+
+    aiUndoStack.push(aiSnapshot());
+    if(aiUndoStack.length > 10) aiUndoStack.shift();
+
+    /* 回填：正文（含 IMG 标记）*/
+    st.body = r.body;
+    /* 首个 # 标题回填到标题栏（若用户原本没填标题）*/
+    var hm = /^\s*#\s+(.+)$/m.exec(r.body);
+    if(hm && !st.title.trim()) st.title = hm[1].trim().slice(0, 40);
+
+    var applied = aiApplyFit(r.fit);
+    /* 未勾选配图时，把 IMG 标记清掉，避免正文里留死标记 */
+    if(!useImg) st.body = aiStripImg(st.body);
+
+    syncUI(); scheduleRender(0); saveSoon();
+
+    var imgs = aiCountImg(st.body);
+    var sec = ((Date.now() - t0) / 1000).toFixed(1);
+    var msg = '✅ 排版完成（' + sec + '秒）';
+    if(applied.length) msg += ' · 已配 ' + applied.join('、');
+    if(useImg && imgs) msg += ' · 插入 ' + imgs + ' 张配图';
+    aiSetStatus('ok', msg + '。可在下方继续手动修改。');
+    toast('AI 排版完成');
+    await aiImgWait();
+  }catch(err){
+    aiSetStatus('bad', '❌ ' + (err.message || err));
+    toast('AI 失败：' + (err.message || err));
+  }finally{
+    aiBusy = false;
+    $('btnAiRun').disabled = false;
+  }
+});
+
 /* 初始化 */
 syncUI();
+aiRefreshKeyUI();
+aiRefreshImgHint();
 if(st.customCss) applyCustomCss(st.customCss);
 if(st.bgImg) ensureBgImage().then(function(){ scheduleRender(0); });
 if(canShareFiles()) $('btnShareAll').style.display = 'block';
