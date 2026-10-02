@@ -1,4 +1,10 @@
 <!DOCTYPE html>
+<!--
+  文字长图工坊 v3
+  纯前端单文件排版工具：Canvas 自绘引擎，支持万字长文自动分片导出长图。
+  排版思路（竖排侧题 / 行边界切图 / 背景图 cover 连续裁剪）参考了
+  Behtnnrtop/Article-format（MIT License, (c) Behtnnrtop），在此保留署名。
+-->
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -111,7 +117,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:22px; hei
 #ovText{font-size:14px; margin-bottom:14px; line-height:1.7;}
 #ovBarWrap{height:8px; border-radius:4px; background:var(--panel2); overflow:hidden;}
 #ovBar{height:100%; width:0%; background:var(--acc); border-radius:4px; transition:width .2s;}
-#toast{position:fixed; left:50%; bottom:22%; transform:translateX(-50%); background:#242e28; color:var(--tx); border:1px solid var(--line); font-size:13px; padding:9px 18px; border-radius:99px; opacity:0; pointer-events:none; transition:opacity .25s; z-index:60; max-width:80vw; text-align:center;}
+#toast{
+  position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 8px); transform:translateX(-50%);
+  background:#242e28; color:var(--tx); border:1px solid var(--line);
+  font-size:13px; padding:9px 18px; border-radius:99px; opacity:0; pointer-events:none;
+  transition:opacity .25s; z-index:60; max-width:80vw; text-align:center;
+  box-shadow:0 6px 20px rgba(0,0,0,.45);
+}
 #toast.show{opacity:1;}
 </style>
 </head>
@@ -152,6 +164,32 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:22px; hei
       <div class="lab"><b>文末落款（可选）</b></div>
       <input type="text" id="inSign" placeholder="如：—— 零落 · 2026.10.03" maxlength="80">
     </div>
+    <div class="fold" id="foldSide">
+      <div class="fold-h"><span>竖排侧题（每张都出现的竖排大字）</span><span class="arw">›</span></div>
+      <div class="fold-body">
+        <input type="text" id="inSide" placeholder="如：零落的碎碎念（留空则不显示）" maxlength="40">
+        <div class="sel-row"><span>位置</span>
+          <div class="seg" data-key="sidePos" style="flex:1">
+            <button data-v="right">右侧</button>
+            <button data-v="left">左侧</button>
+          </div>
+        </div>
+        <div class="row"><div class="lab"><b>侧题字号</b><span class="val" id="vSideSize"></span></div>
+          <input type="range" data-key="sideSize" min="0" max="90" step="2"></div>
+        <div class="note">侧题过长会自动缩小字号保证不出血；字号 0 = 跟随正文自动。</div>
+      </div>
+    </div>
+    <div class="fold" id="foldRich">
+      <div class="fold-h"><span>富文本标记速查</span><span class="arw">›</span></div>
+      <div class="fold-body">
+        <div class="note" style="margin-top:0;line-height:2">
+          行内：<code>**加粗**</code>　<code>*斜体*</code>　<code>~~删除线~~</code>　<code>&lt;u&gt;下划线&lt;/u&gt;</code><br>
+          颜色：<code>{{E57373}}这段变红{{/}}</code>（6 位色值，粘贴 HTML 也会自动识别）<br>
+          段落：行首写 <code># </code>大标题　<code>## </code>小标题　<code>&gt; </code>引用块　<code>- </code>列表项<br>
+          从网页复制的<b>带格式文字</b>，加粗和颜色会自动保留。
+        </div>
+      </div>
+    </div>
     <div class="mini-btns">
       <button id="btnExample">填入示例</button>
       <button id="btnPaste">粘贴正文</button>
@@ -173,6 +211,31 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:22px; hei
       <label>背景<input type="color" id="cBg"></label>
       <label>标题色<input type="color" id="cTitle"></label>
       <label>正文色<input type="color" id="cText"></label>
+    </div>
+
+    <div class="row">
+      <div class="lab"><b>背景图</b><span class="val" id="bgInfo">未设置</span></div>
+      <div class="mini-btns">
+        <button id="btnBgPick">上传底图</button>
+        <button id="btnBgClear">清除</button>
+      </div>
+      <input type="file" id="fileBg" accept="image/*" style="display:none">
+      <div id="bgThumbWrap" style="display:none;margin-top:8px">
+        <img id="bgThumb" alt="背景图预览" style="width:100%;max-height:150px;object-fit:cover;border-radius:8px;border:1px solid var(--line)">
+      </div>
+      <div class="sel-row" id="rowBgMode" style="display:none"><span>铺法</span>
+        <div class="seg" data-key="bgMode" style="flex:1">
+          <button data-v="cover">拉伸铺满</button>
+          <button data-v="tile">平铺纹理</button>
+        </div>
+      </div>
+      <div id="rowBgCtl" style="display:none">
+        <div class="row"><div class="lab"><b>底图浓度</b><span class="val" id="vBgAlpha"></span></div>
+          <input type="range" data-key="bgAlpha" min="10" max="100" step="5"></div>
+        <div class="row"><div class="lab"><b>底色蒙版（压暗保字可读）</b><span class="val" id="vBgShade"></span></div>
+          <input type="range" data-key="bgShade" min="0" max="90" step="5"></div>
+      </div>
+      <div class="note">底图会按整份长图缩放后再切张，多张之间背景连续无缝；只存在本机，不上传。</div>
     </div>
 
     <div class="row">
@@ -370,12 +433,14 @@ var LS_KEY = 'textlongimg-v2';
 
 var DEFAULTS = {
   masthead:'', title:'', body:'', sign:'',
+  sideOn:false, sideText:'', sidePos:'right', sideSize:0,
   tpl:'pine', c:{bg:'#1F3D3A', text:'#E5E0CE', title:'#E5E0CE'},
   preset:'magazine', font:'song', align:'left', indent:'no',
   rule:'none', orn:'none', dropCap:0, footer:'corner', mast:false,
   titleSize:50, bodySize:40, lineHeight:1.9, paraGap:0.85, margin:96, ls:0,
   width:1080, sliceMode:'height', sliceHeight:8400, sliceChars:1200, sliceCount:3,
   format:'png', repeatTitle:false,
+  bgImg:'', bgMode:'cover', bgAlpha:100, bgShade:30,
   customCss:'', customFam:''
 };
 var st = loadSettings();
@@ -421,7 +486,14 @@ function saveSoon(){
 function $(id){ return document.getElementById(id); }
 function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
 function toast(msg){
-  var t = $('toast'); t.textContent = msg; t.classList.add('show');
+  var t = $('toast'); t.textContent = msg;
+  /* 贴在底部面板（#sheet）上沿外侧：既不遮预览长图，也不遮面板控件 */
+  var sh = $('sheet');
+  if(sh){
+    var r = sh.getBoundingClientRect();
+    t.style.bottom = Math.max(10, Math.round(window.innerHeight - r.top + 8)) + 'px';
+  }
+  t.classList.add('show');
   clearTimeout(toast._t); toast._t = setTimeout(function(){ t.classList.remove('show'); }, 2000);
 }
 function hex2rgb(h){
@@ -442,57 +514,136 @@ function setFontX(ctx, size, family, weight, ls){
 }
 function fontStack(){ return FONT_DEFS[st.font] ? FONT_DEFS[st.font].stack : "serif"; }
 
-/* ================= 分词 + 排版引擎 ================= */
-function tokenize(text){
-  var out = [], i = 0;
-  while(i < text.length){
-    var ch = text[i];
-    if(ch === ' ' || ch === '\t'){
-      out.push({k:'s', s:' '}); i++;
-      while(i < text.length && (text[i]===' '||text[i]==='\t')) i++;
-      continue;
-    }
-    if(/[A-Za-z0-9]/.test(ch)){
-      var j = i + 1;
-      while(j < text.length && /[A-Za-z0-9'’\-._/@&]/.test(text[j])) j++;
-      out.push({k:'w', s:text.slice(i, j)}); i = j;
-      continue;
-    }
-    out.push({k:'c', s:ch}); i++;
-  }
-  return out;
+/* ================= 行内富文本解析 =================
+   1) 粘贴的 HTML 会保留格式：<b> <i> <u> <s> <del> <span style="color:#xxx">
+   2) 手写 Markdown：**粗**  *斜*  ~~删除~~
+   3) 颜色简写：{{FF0000}}红字{{/}}
+   4) 段落级：# 大标题 / ## 小标题 / > 引用 / - 列表项
+*/
+function blankRun(){ return {s:'', b:0, i:0, u:0, strike:0, color:null}; }
+function normHex(c){
+  c = (c||'').trim();
+  if(/^#[0-9a-fA-F]{3}$/.test(c) || /^#[0-9a-fA-F]{6}$/.test(c)) return c;
+  return null;
 }
+function parseInline(src){
+  var runs = [], stack = [];
+  var S = blankRun(); S.s = '';
+  function ensure(){
+    var last = runs[runs.length-1];
+    if(!last || last.b!==S.b || last.i!==S.i || last.u!==S.u || last.strike!==S.strike || last.color!==S.color){
+      last = blankRun();
+      last.b = S.b; last.i = S.i; last.u = S.u; last.strike = S.strike; last.color = S.color;
+      runs.push(last);
+    }
+    return last;
+  }
+  function set(p, v){ stack.push({p:p, v:S[p]}); S[p] = v; }
+  function unset(p){ for(var i=stack.length-1;i>=0;i--){ if(stack[i].p === p){ S[p] = stack[i].v; stack.splice(i,1); return; } } }
+  var i = 0;
+  while(i < src.length){
+    var two = src.substr(i,2), three = src.substr(i,3);
+    if(two === '**'){ S.b ? unset('b') : set('b',1); i += 2; continue; }
+    if(two === '~~'){ S.strike ? unset('strike') : set('strike',1); i += 2; continue; }
+    if(two === '{{'){
+      var end = src.indexOf('}}', i);
+      if(end > i){
+        var inner = src.slice(i+2, end);
+        if(/^[0-9a-fA-F]{3,8}$/.test(inner)){ set('color', normHex('#'+inner) || S.color); i = end+2; continue; }
+        if(inner === '/'){ unset('color'); i = end+2; continue; }
+      }
+      i += 2; continue;
+    }
+    if(src.charAt(i) === '*'){ S.i ? unset('i') : set('i',1); i++; continue; }
+    if(src.charAt(i) === '<'){
+      var gt = src.indexOf('>', i);
+      if(gt > -1 && (gt - i) < 140){
+        var tag = src.slice(i+1, gt);
+        if(/^\/?[a-zA-Z][a-zA-Z0-9]*(\s[^<>]*)?$/.test(tag)){
+          var closing = tag.charAt(0) === '/';
+          var nm = /^\/?([a-zA-Z][a-zA-Z0-9]*)/.exec(tag)[1].toLowerCase();
+          var on = !closing;
+          if(nm === 'b' || nm === 'strong'){ on ? set('b',1) : unset('b'); }
+          else if(nm === 'i' || nm === 'em'){ on ? set('i',1) : unset('i'); }
+          else if(nm === 'u' || nm === 'ins'){ on ? set('u',1) : unset('u'); }
+          else if(nm === 's' || nm === 'del' || nm === 'strike'){ on ? set('strike',1) : unset('strike'); }
+          else if(nm === 'span'){
+            if(on){ var cm = /color\s*:\s*([^;"']+)/i.exec(tag); set('color', normHex(cm ? cm[1] : '') || S.color); }
+            else unset('color');
+          }
+          i = gt + 1; continue;
+        }
+      }
+    }
+    ensure().s += src.charAt(i);
+    i++;
+  }
+  return runs.filter(function(r){ return r.s !== ''; });
+}
+function tokenizeRuns(runs){
+  var toks = [];
+  runs.forEach(function(run, ri){
+    var t = run.s, i = 0;
+    while(i < t.length){
+      var ch = t.charAt(i);
+      if(ch === ' ' || ch === '\t'){
+        toks.push({k:'s', s:' ', r:ri}); i++;
+        while(i < t.length && (t.charAt(i) === ' ' || t.charAt(i) === '\t')) i++;
+        continue;
+      }
+      if(/[A-Za-z0-9]/.test(ch)){
+        var j = i+1;
+        while(j < t.length && /[A-Za-z0-9'’\-._/@&]/.test(t.charAt(j))) j++;
+        toks.push({k:'w', s:t.slice(i,j), r:ri}); i = j; continue;
+      }
+      toks.push({k:'c', s:ch, r:ri}); i++;
+    }
+  });
+  return toks;
+}
+function tokenize(text){ return tokenizeRuns(parseInline(text)); }
 
-/* o.shrink = {n:行数, w:缩窄宽度}（首字下沉用） */
+/* o.shrink = {n:行数, w:缩窄宽度}（首字下沉用）；o.runs = 富文本 runs */
 function layoutPara(ctx, tokens, o){
-  var lines = [], cur = '', curW = 0, hung = false;
+  var lines = [], cur = '', curW = 0, hung = false, curToks = [];
+  var runs = o.runs || null;
   function availNow(){ return o.avail - (o.shrink && lines.length < o.shrink.n ? o.shrink.w : 0); }
+  function fontOfTok(tk){
+    var r = (runs && tk.r !== undefined) ? runs[tk.r] : null;
+    setFontX(ctx, o.size, o.family, (r && r.b) ? 700 : (o.weight || 400), o.ls);
+  }
   function wOf(s){ setFontX(ctx, o.size, o.family, o.weight, o.ls); return ctx.measureText(s).width; }
+  function wOfTok(tk){ fontOfTok(tk); return ctx.measureText(tk.s).width; }
   function endLine(){
-    if(cur !== ''){ lines.push({text:cur, w:curW}); cur = ''; curW = 0; }
+    if(cur !== ''){ lines.push({text:cur, w:curW, toks:curToks.slice()}); cur = ''; curW = 0; curToks = []; }
     hung = false;
+  }
+  function push(tk){
+    if(tk.k === 's'){ cur += ' '; curToks.push({k:'s', s:' ', r:tk.r}); }
+    else { cur += tk.s; curToks.push(tk); }
+    curW += wOfTok(tk);
   }
   for(var i=0;i<tokens.length;i++){
     var tk = tokens[i];
-    var w = wOf(tk.s);
+    var w = wOfTok(tk);
     var av = availNow();
     if(tk.k === 's'){
       if(curW === 0) continue;
       if(curW + w > av){ endLine(); continue; }
-      cur += tk.s; curW += w; continue;
+      push(tk); continue;
     }
-    if(curW + w <= av){ cur += tk.s; curW += w; continue; }
+    if(curW + w <= av){ push(tk); continue; }
     if(tk.k === 'c' && END_PUNCT.indexOf(tk.s) >= 0 && cur !== '' && !hung){
-      cur += tk.s; curW += w; hung = true; continue;
+      push(tk); hung = true; continue;
     }
     if(tk.k === 'c' && START_PUNCT.indexOf(tk.s) >= 0){
-      endLine(); cur = tk.s; curW = w; continue;
+      endLine(); push(tk); continue;
     }
-    if(tk.k === 'w' && w <= av){ endLine(); cur = tk.s; curW = w; continue; }
+    if(tk.k === 'w' && w <= av){ endLine(); push(tk); continue; }
     if(tk.k === 'w'){
       endLine();
-      var rest = tk.s;
-      while(wOf(rest) > o.avail && rest.length > 1){
+      var rest = tk.s, guard = 0;
+      while(wOf(rest) > o.avail && rest.length > 1 && guard++ < 200){
         var lo = 1, hi = rest.length, best = 1;
         while(lo <= hi){
           var mid = (lo + hi) >> 1;
@@ -500,12 +651,15 @@ function layoutPara(ctx, tokens, o){
           else hi = mid - 1;
         }
         var seg = rest.slice(0, best);
-        lines.push({text:seg, w:wOf(seg)});
+        var segTok = {k:'w', s:seg, r:tk.r};
+        lines.push({text:seg, w:wOf(seg), toks:[segTok]});
         rest = rest.slice(best);
       }
-      cur = rest; curW = wOf(rest); continue;
+      cur = ''; curW = 0; curToks = [];
+      if(rest !== ''){ push({k:'w', s:rest, r:tk.r}); }
+      continue;
     }
-    endLine(); cur = tk.s; curW = w;
+    endLine(); push(tk);
   }
   endLine();
   return lines;
@@ -515,19 +669,49 @@ function pushTextLine(arr, ln, o){
   ln.type = 'text';
   arr.push(ln);
 }
+/* 段落级标记：# 大标题 / ## 小标题 / ### 小小标题 / > 引用 / - 列表 */
+function parseParaMark(raw){
+  var out = {text:raw, size:st.bodySize, weight:400, color:st.c.text,
+             indent:0, bar:0, gapBefore:0, bullet:'', noDrop:false};
+  var m;
+  if((m = /^###\s+/.exec(raw))){
+    out.size = Math.round(st.bodySize*1.14); out.weight = 700; out.color = st.c.title;
+    out.gapBefore = st.bodySize*0.95; out.text = raw.slice(m[0].length); out.noDrop = true;
+  }else if((m = /^##\s+/.exec(raw))){
+    out.size = Math.round(st.bodySize*1.32); out.weight = 700; out.color = st.c.title;
+    out.gapBefore = st.bodySize*1.15; out.text = raw.slice(m[0].length); out.noDrop = true;
+  }else if((m = /^#\s+/.exec(raw))){
+    out.size = Math.round(st.bodySize*1.58); out.weight = 700; out.color = st.c.title;
+    out.gapBefore = st.bodySize*1.35; out.text = raw.slice(m[0].length); out.noDrop = true;
+  }else if((m = /^>\s?/.exec(raw))){
+    out.color = mixHex(st.c.text, st.c.bg, 0.76);
+    out.indent = Math.round(st.bodySize*0.95); out.bar = 1;
+    out.text = raw.slice(m[0].length);
+  }else if((m = /^[-•·]\s+/.exec(raw))){
+    out.indent = Math.round(st.bodySize*1.05); out.bullet = '·';
+    out.text = raw.slice(m[0].length);
+  }
+  return out;
+}
 function buildLayout(ctx){
-  var W = st.width, m = st.margin, avail = W - m*2;
+  var W = st.width, m = st.margin;
+  var sideFit = 0, sideW = 0;
+  if(st.sideOn && st.sideText.trim()){
+    sideFit = st.sideSize || Math.round(st.bodySize*0.95);
+    sideW = Math.round(sideFit*1.5);
+  }
+  var avail = W - m*2 - sideW;
   var fam = fontStack();
-  var L = {width:W, titleLines:[], bodyLines:[], titleH:0, height:0};
+  var L = {width:W, titleLines:[], bodyLines:[], titleH:0, height:0, sideW:sideW, sideFit:sideFit};
   var lh = st.lineHeight;
 
   /* 刊头小字 */
   if(st.mast && st.masthead.trim()){
     var mSize = Math.round(st.bodySize*0.52);
     var mo = {size:mSize, family:fam, weight:400, avail:avail, ls:3};
-    var mls = layoutPara(ctx, tokenize(st.masthead.trim().toUpperCase()), mo);
+    var mls = layoutPara(ctx, tokenizeRuns(parseInline(st.masthead.trim().toUpperCase())), mo);
     for(var q=0;q<mls.length;q++){
-      L.titleLines.push({type:'text', text:mls[q].text, w:mls[q].w, x:(W-mls[q].w)/2,
+      L.titleLines.push({type:'text', text:mls[q].text, w:mls[q].w, x:m + (avail-mls[q].w)/2,
         size:mSize, weight:400, color:mutedColor(), h:mSize*lh, gapAfter:mSize*0.9, ls:3});
     }
   }
@@ -538,12 +722,13 @@ function buildLayout(ctx){
   /* 标题 */
   var titleCount = 0;
   if(st.title.trim()){
-    var to = {size:st.titleSize, family:fam, weight:700, avail:avail, ls:st.ls};
-    var tls = layoutPara(ctx, tokenize(st.title.trim()), to);
+    var tRuns = parseInline(st.title.trim());
+    var to = {size:st.titleSize, family:fam, weight:700, avail:avail, ls:st.ls, runs:tRuns};
+    var tls = layoutPara(ctx, tokenizeRuns(tRuns), to);
     titleCount = tls.length;
     for(var i=0;i<tls.length;i++){
-      L.titleLines.push({type:'text', text:tls[i].text, w:tls[i].w,
-        x:(st.align==='center' ? (W-tls[i].w)/2 : m),
+      L.titleLines.push({type:'text', text:tls[i].text, w:tls[i].w, toks:tls[i].toks, runs:tRuns,
+        x:(st.align==='center' ? m + (avail-tls[i].w)/2 : m),
         size:st.titleSize, weight:700, color:st.c.title, h:st.titleSize*lh,
         gapAfter:(i===tls.length-1 ? st.titleSize*0.55 : 0), ls:st.ls});
     }
@@ -586,19 +771,25 @@ function buildLayout(ctx){
     if(extraGap > 0 && L.bodyLines.length){
       L.bodyLines[L.bodyLines.length-1].gapAfter += extraGap; extraGap = 0;
     }
-    var toks = tokenize(raw);
-    if(st.indent === 'yes' && st.align !== 'center'){
-      toks = [{k:'c', s:'\u3000'},{k:'c', s:'\u3000'}].concat(toks);
+    /* 段落级样式 + 行内富文本 */
+    var pm = parseParaMark(raw);
+    var pRuns = parseInline(pm.text);
+    var toks = tokenizeRuns(pRuns);
+    if(pm.bullet) toks = [{k:'c', s:pm.bullet + '\u3000', r:0}].concat(toks);
+    if(st.indent === 'yes' && st.align !== 'center' && !pm.indent && !pm.bullet){
+      toks = [{k:'c', s:'\u3000', r:0},{k:'c', s:'\u3000', r:0}].concat(toks);
     }
-    var bo = {size:st.bodySize, family:fam, weight:400, avail:avail, ls:st.ls};
-    if(st.dropCap > 0 && !dropDone && st.align !== 'center' && toks.length){
+    if(pm.gapBefore > 0 && L.bodyLines.length) L.bodyLines[L.bodyLines.length-1].gapAfter += pm.gapBefore;
+    var pAvail = avail - pm.indent;
+    var bo = {size:pm.size, family:fam, weight:pm.weight, avail:pAvail, ls:st.ls, runs:pRuns};
+    if(st.dropCap > 0 && !dropDone && st.align !== 'center' && toks.length && !pm.noDrop && pm.size === st.bodySize){
       var dStr = toks[0].s;
       if(START_PUNCT.indexOf(dStr) >= 0 && toks[1]) dStr += toks[1].s;
       var dSize = Math.round(st.bodySize*lh*st.dropCap*0.84);
       setFontX(ctx, dSize, fam, 700, 0);
       var dW = ctx.measureText(dStr).width * 1.06;
       var rows = Math.ceil(dSize*0.92 / (st.bodySize*lh));
-      if(dW < avail*0.45){
+      if(dW < pAvail*0.45){
         dropDone = true;
         pendingShrink = {rows:rows, w:dW};
         pendingDrop = {s:dStr, size:dSize, w:dW};
@@ -608,16 +799,17 @@ function buildLayout(ctx){
     }
     if(pendingShrink){ bo.shrink = {n:pendingShrink.rows, w:pendingShrink.w}; }
     var bls = layoutPara(ctx, toks, bo);
-    var paraChars = raw.replace(/\s/g,'').length;
+    var paraChars = pm.text.replace(/\s/g,'').length;
     var shrinkN = bo.shrink ? bo.shrink.n : 0;
     var firstIdx = L.bodyLines.length;
     for(var b=0;b<bls.length;b++){
       L.bodyLines.push({
-        type:'text', text:bls[b].text, w:bls[b].w,
-        x:(st.align==='center' ? (W-bls[b].w)/2 : (b < shrinkN ? m + pendingShrink.w : m)),
-        size:st.bodySize, weight:400, color:st.c.text, h:st.bodySize*lh,
-        gapAfter:(b===bls.length-1 ? st.bodySize*st.paraGap : 0),
-        ls:st.ls, cc:bls[b].text.replace(/\s/g,'').length, pc:paraChars, ps:(b===0)
+        type:'text', text:bls[b].text, w:bls[b].w, toks:bls[b].toks, runs:pRuns,
+        x:(st.align==='center' ? m + (pAvail-bls[b].w)/2 : (m + pm.indent + (b < shrinkN && pendingShrink ? pendingShrink.w : 0))),
+        size:pm.size, weight:pm.weight, color:pm.color, h:pm.size*lh,
+        gapAfter:(b===bls.length-1 ? pm.size*st.paraGap : 0),
+        ls:st.ls, cc:bls[b].text.replace(/\s/g,'').length, pc:paraChars, ps:(b===0),
+        bar: pm.bar ? (m + pm.indent - Math.round(pm.size*0.62)) : 0
       });
     }
     if(pendingDrop && !dropPlaced && bls.length > 0 && firstIdx < L.bodyLines.length){
@@ -635,15 +827,18 @@ function buildLayout(ctx){
   if(st.sign.trim()){
     var sSize = Math.round(st.bodySize*0.72);
     if(L.bodyLines.length) L.bodyLines[L.bodyLines.length-1].gapAfter += sSize*lh*0.9;
-    var so = {size:sSize, family:fam, weight:400, avail:avail, ls:st.ls};
-    var sls = layoutPara(ctx, tokenize(st.sign.trim()), so);
+    var sRuns = parseInline(st.sign.trim());
+    var so = {size:sSize, family:fam, weight:400, avail:avail, ls:st.ls, runs:sRuns};
+    var sls = layoutPara(ctx, tokenizeRuns(sRuns), so);
     for(var s=0;s<sls.length;s++){
-      L.bodyLines.push({type:'text', text:sls[s].text, w:sls[s].w, x:W-m-sls[s].w,
+      L.bodyLines.push({type:'text', text:sls[s].text, w:sls[s].w, toks:sls[s].toks, runs:sRuns,
+        x:m + avail - sls[s].w,
         size:sSize, weight:400, color:mutedColor(), h:sSize*lh, gapAfter:0,
         ls:st.ls, cc:0, pc:0, ps:false});
     }
   }
   L.height = L.bodyLines.reduce(function(a,l){ return a + l.h + l.gapAfter; }, 0);
+  L.docH = L.height + Math.max(24, Math.round(st.margin*0.7)) * 2;
   return L;
 }
 
@@ -686,21 +881,76 @@ function computeSlices(L){
     if(cur2.length > 0 || groups.length === 0) groups.push(cur2);
   }
 
+  var cum = 0;
   return groups.map(function(g, gi){
     var inner = 0;
     for(var j=0;j<g.length;j++) inner += g[j].h + (j < g.length-1 ? g[j].gapAfter : 0);
     var withTitle = (gi === 0 || st.repeatTitle) && L.titleH > 0;
-    return {idx:gi+1, lines:g, padT:padT, padB:padB, withTitle:withTitle,
-            h:Math.round(padT + (withTitle ? L.titleH : 0) + inner + padB)};
+    var h = Math.round(padT + (withTitle ? L.titleH : 0) + inner + padB);
+    var s = {idx:gi+1, lines:g, padT:padT, padB:padB, withTitle:withTitle, h:h, offset:cum};
+    cum += h;
+    return s;
   });
 }
 
 /* ================= 绘制 ================= */
+/* 逐 token 富文本渲染：加粗 / 颜色 / 下划线 / 删除线 */
+function drawRichLine(ctx, ln, dy){
+  var fam = fontStack();
+  var runs = ln.runs || null;
+  var toks = ln.toks;
+  if(!toks || !toks.length){
+    setFontX(ctx, ln.size, fam, ln.weight, ln.ls || st.ls);
+    ctx.fillStyle = ln.color;
+    ctx.fillText(ln.text, ln.x, dy + ln.h/2);
+  }else{
+    var x = ln.x, baseY = dy + ln.h/2;
+    for(var i=0;i<toks.length;i++){
+      var tk = toks[i];
+      var r = (runs && tk.r !== undefined) ? runs[tk.r] : null;
+      var weight = (r && r.b) ? 700 : (ln.weight || 400);
+      setFontX(ctx, ln.size, fam, weight, ln.ls || st.ls);
+      if(tk.k === 's'){ x += ctx.measureText(' ').width; continue; }
+      var col = (r && r.color) ? r.color : ln.color;
+      ctx.fillStyle = col;
+      ctx.fillText(tk.s, x, baseY);
+      var w = ctx.measureText(tk.s).width;
+      if(r && (r.u || r.strike)){
+        var lw = Math.max(1, Math.round(ln.size*0.055));
+        ctx.save();
+        ctx.strokeStyle = col; ctx.lineWidth = lw;
+        ctx.beginPath();
+        if(r.u){
+          var yu = baseY + ln.size*0.44;
+          ctx.moveTo(x, yu); ctx.lineTo(x+w, yu);
+        }else{
+          var ys = baseY - ln.size*0.05;
+          ctx.moveTo(x, ys); ctx.lineTo(x+w, ys);
+        }
+        ctx.stroke(); ctx.restore();
+      }
+      x += w;
+    }
+  }
+  /* 引用块左侧竖线 */
+  if(ln.bar){
+    ctx.save();
+    ctx.globalAlpha = 0.6; ctx.fillStyle = mutedColor();
+    var bt = Math.max(2, Math.round(1.8*st.width/1080));
+    ctx.fillRect(ln.bar, dy + ln.h*0.14, bt, ln.h*0.86);
+    ctx.restore();
+  }
+  if(ln.drop){
+    setFontX(ctx, ln.drop.size, fam, 700, 0);
+    ctx.fillStyle = ln.color;
+    ctx.fillText(ln.drop.s, ln.x - ln.drop.w, dy + ln.drop.size*0.5);
+  }
+}
 function drawLine(ctx, ln, dy, W, m, avail){
   var fam = fontStack();
   if(ln.type === 'rule'){
     var lw = (ln.span === 'short') ? avail*0.3 : avail;
-    var x0 = (ln.span === 'short') ? (W - lw)/2 : m;
+    var x0 = (ln.span === 'short') ? (m + (avail-lw)/2) : m;
     var thick = Math.max(1, Math.round(1.6*st.width/1080));
     ctx.save();
     ctx.globalAlpha = 0.55; ctx.fillStyle = mutedColor();
@@ -713,21 +963,42 @@ function drawLine(ctx, ln, dy, W, m, avail){
     ctx.globalAlpha = 0.75; ctx.fillStyle = ln.color || mutedColor();
     setFontX(ctx, ln.size, fam, 400, 0);
     var ow = ctx.measureText(ln.sym).width;
-    ctx.fillText(ln.sym, (W-ow)/2, dy + ln.h*0.5);
+    ctx.fillText(ln.sym, m + (avail-ow)/2, dy + ln.h*0.5);
     ctx.restore();
     return;
   }
-  setFontX(ctx, ln.size, fam, ln.weight, ln.ls || st.ls);
-  ctx.fillStyle = ln.color;
-  ctx.fillText(ln.text, ln.x, dy + ln.h/2);
-  if(ln.drop){
-    setFontX(ctx, ln.drop.size, fam, 700, 0);
-    ctx.fillStyle = ln.color;
-    ctx.fillText(ln.drop.s, ln.x - ln.drop.w, dy + ln.drop.size*0.5);
+  drawRichLine(ctx, ln, dy);
+}
+/* 竖排侧题（每张都画，杂志封面感） */
+function drawSideTitle(ctx, L, top, bottom){
+  if(!st.sideOn || !st.sideText.trim()) return;
+  var chars = Array.from(st.sideText.trim());
+  if(!chars.length) return;
+  var sSize = L.sideFit || Math.round(st.bodySize*0.95);
+  var adv = sSize*1.16;
+  var need = sSize*0.95 + chars.length*adv;
+  var room = bottom - top;
+  if(need > room && room > sSize*2){          /* 侧题比正文还长 → 缩字号兜底 */
+    sSize = Math.max(14, Math.floor(sSize * room / need));
+    adv = sSize*1.16;
   }
+  var x = (st.sidePos === 'left') ? Math.round(st.margin*0.6) : (L.width - Math.round(st.margin*0.6));
+  var y = top + sSize*0.92;
+  ctx.save();
+  ctx.fillStyle = st.c.title;
+  ctx.globalAlpha = 0.92;
+  setFontX(ctx, sSize, fontStack(), 700, sSize*0.05);
+  for(var i=0;i<chars.length;i++){
+    if(y > bottom - sSize*0.4) break;
+    var w = ctx.measureText(chars[i]).width;
+    ctx.fillText(chars[i], x - w/2, y);
+    y += adv;
+  }
+  ctx.restore();
 }
 function drawDoc(ctx, L, parts, startY){
-  var W = L.width, m = st.margin, avail = W - m*2;
+  var W = L.width, m = st.margin;
+  var avail = W - m*2 - (L.sideW || 0);
   var dy = startY;
   function seq(arr){
     for(var i=0;i<arr.length;i++){
@@ -786,6 +1057,70 @@ function drawSliceCanvas(L, slice, total){
   return c;
 }
 
+/* ================= 背景图 ================= */
+var bgState = {src:null, img:null, ready:null};
+function ensureBgImage(){
+  if(!st.bgImg) return Promise.resolve(null);
+  if(bgState.src === st.bgImg && bgState.img) return Promise.resolve(bgState.img);
+  if(bgState.src === st.bgImg && bgState.ready) return bgState.ready;
+  bgState.src = st.bgImg;
+  bgState.ready = new Promise(function(res){
+    var im = new Image();
+    im.onload = function(){ bgState.img = im; res(im); };
+    im.onerror = function(){ bgState.img = null; res(null); };
+    im.src = st.bgImg;
+  });
+  return bgState.ready;
+}
+/* img 为 null 时只铺底色；cover 模式按整份文档高度缩放并按 slice.offset 裁剪 → 多张背景连续无缝 */
+function drawBackground(ctx, L, slice, img){
+  if(img){
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, Math.min(100, st.bgAlpha))/100;
+    if(st.bgMode === 'tile'){
+      var pat = ctx.createPattern(img, 'repeat');
+      if(pat){ ctx.fillStyle = pat; ctx.fillRect(0, 0, L.width, slice.h); }
+    }else{
+      /* cover：以「所有切片累计总高」为文档高缩放，再按 slice.offset 裁剪 → 多张背景连续无缝、底部不露底 */
+      var sl = computeSlices(L);
+      var docTotal = 0;
+      for(var q2=0;q2<sl.length;q2++) docTotal += sl[q2].h;
+      if(!docTotal) docTotal = L.height + 200;
+      var sc = Math.max(L.width/img.width, docTotal/img.height);
+      var dw = img.width*sc, dh = img.height*sc;
+      ctx.drawImage(img, (L.width - dw)/2, -(slice.offset || 0), dw, dh);
+    }
+    ctx.restore();
+  }
+  if(st.bgShade > 0){
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, Math.min(100, st.bgShade))/100;
+    ctx.fillStyle = st.c.bg;
+    ctx.fillRect(0, 0, L.width, slice.h);
+    ctx.restore();
+  }
+}
+function drawSliceCanvas(L, slice, total, bgImg){
+  var c = document.createElement('canvas');
+  c.width = L.width; c.height = slice.h;
+  var x = c.getContext('2d');
+  x.fillStyle = st.c.bg; x.fillRect(0, 0, L.width, slice.h);
+  x.textBaseline = 'middle'; x.textAlign = 'left';
+  drawBackground(x, L, slice, bgImg || null);
+  /* 侧栏竖线 */
+  if(st.rule === 'leftbar'){
+    x.save();
+    x.globalAlpha = 0.45; x.fillStyle = mutedColor();
+    var bx = Math.round(st.margin*0.55), bt = Math.max(2, Math.round(1.8*st.width/1080));
+    x.fillRect(bx, slice.padT*0.6, bt, slice.h - slice.padT*0.6 - slice.padB*0.6);
+    x.restore();
+  }
+  drawDoc(x, L, {title:slice.withTitle, lines:slice.lines}, slice.padT);
+  drawSideTitle(x, L, slice.padT, slice.h - slice.padB);
+  drawFooter(x, L, slice, total);
+  return c;
+}
+
 /* ================= 预览 ================= */
 var PV_W = 720, PV_MAX_H = 12000;
 function drawPreview(L){
@@ -806,6 +1141,9 @@ function drawPreview(L){
   $('emptyHint').style.display = hasContent ? 'none' : 'block';
   pv.style.display = hasContent ? 'block' : 'none';
   if(!hasContent){ $('pvTip').classList.remove('show'); return; }
+  if(st.bgImg){
+    drawBackground(x, L, {h:H/scale, offset:0, padT:padT, padB:padB}, bgState.img);
+  }
   if(st.rule === 'leftbar'){
     x.save(); x.globalAlpha = 0.45; x.fillStyle = mutedColor();
     x.fillRect(Math.round(st.margin*0.55), padT*0.6, Math.max(2, Math.round(1.8*st.width/1080)),
@@ -813,6 +1151,7 @@ function drawPreview(L){
     x.restore();
   }
   drawDoc(x, L, {title:true, lines:L.bodyLines}, padT);
+  drawSideTitle(x, L, padT, H/scale - padB);
   var tip = $('pvTip');
   if(fullH*scale > H + 1){
     tip.textContent = '预览只显示前一段，导出会完整生成 ' + computeSlices(L).length + ' 张 ↓';
@@ -977,7 +1316,8 @@ function ovShow(t){ $('overlay').classList.add('show'); $('ovText').textContent 
 function ovBar(p){ $('ovBar').style.width = Math.round(p*100) + '%'; }
 function ovHide(){ $('overlay').classList.remove('show'); }
 async function buildSliceBlob(L, slice, total){
-  var c = drawSliceCanvas(L, slice, total);
+  var bg = await ensureBgImage();
+  var c = drawSliceCanvas(L, slice, total, bg);
   var blob = await canvasToBlob(c);
   c.width = 0; c.height = 0;
   return blob;
@@ -1136,9 +1476,7 @@ function markFontChips(){
     el.classList.toggle('on', el.dataset.id === st.font);
   });
 }
-$('foldFont').querySelector('.fold-h').addEventListener('click', function(){
-  $('foldFont').classList.toggle('open');
-});
+/* 折叠交互见下方统一处理器 */
 
 var CSS_SAMPLE = '@font-face {\n  font-family: "我的字体";\n  src: url("https://cdn.jsdelivr.net/gh/用户名/仓库@main/字体.woff2") format("woff2");\n}\n/* 也可以直接写字体名，如：PingFang SC */';
 $('btnCssSample').addEventListener('click', function(){ $('inCss').value = CSS_SAMPLE; });
@@ -1179,10 +1517,14 @@ var RANGE_FMT = {
   paraGap:function(v){ return Number(v).toFixed(2) + ' 倍'; },
   margin:function(v){ return v + ' px'; },
   ls:function(v){ return v + ' px'; },
-  sliceHeight:function(v){ return Number(v).toLocaleString() + ' px'; }
+  sliceHeight:function(v){ return Number(v).toLocaleString() + ' px'; },
+  sideSize:function(v){ return Number(v) === 0 ? '自动' : v + ' px'; },
+  bgAlpha:function(v){ return v + '%'; },
+  bgShade:function(v){ return v + '%'; }
 };
 var RANGE_LAB = {titleSize:'vTitleSize', bodySize:'vBodySize', lineHeight:'vLineHeight',
-                 paraGap:'vParaGap', margin:'vMargin', ls:'vLs', sliceHeight:'vSliceHeight'};
+                 paraGap:'vParaGap', margin:'vMargin', ls:'vLs', sliceHeight:'vSliceHeight',
+                 sideSize:'vSideSize', bgAlpha:'vBgAlpha', bgShade:'vBgShade'};
 Object.keys(RANGE_FMT).forEach(function(key){
   var input = document.querySelector('input[type=range][data-key=' + key + ']');
   if(!input) return;
@@ -1232,6 +1574,55 @@ $('inSliceCount').addEventListener('input', function(){
 $('ckRepeat').checked = st.repeatTitle;
 $('ckRepeat').addEventListener('change', function(){ st.repeatTitle = this.checked; scheduleRender(60); saveSoon(); });
 
+/* 背景图 */
+$('btnBgPick').addEventListener('click', function(){ $('fileBg').click(); });
+$('fileBg').addEventListener('change', function(){
+  var f = this.files && this.files[0];
+  if(!f) return;
+  var self = this;
+  var reader = new FileReader();
+  reader.onload = function(){
+    var im = new Image();
+    im.onload = function(){
+      var sc = Math.min(1, 1080/im.width);
+      var c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(im.width*sc));
+      c.height = Math.max(1, Math.round(im.height*sc));
+      try{ c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); }catch(e){}
+      var url = '';
+      try{ url = c.toDataURL('image/jpeg', 0.72); }catch(e){}
+      if(!url){ toast('这张图处理失败，换一张试试'); return; }
+      if(url.length > 2600000){ toast('图片太大没能压缩成功，建议换一张较小的'); return; }
+      st.bgImg = url;
+      bgState = {src:null, img:null, ready:null};
+      showBgUI(); saveSoon();
+      ensureBgImage().then(function(){ scheduleRender(60); });
+      toast('底图已设置 ' + c.width + '×' + c.height);
+    };
+    im.onerror = function(){ toast('图片读取失败'); };
+    im.src = reader.result;
+  };
+  reader.readAsDataURL(f);
+  self.value = '';
+});
+$('btnBgClear').addEventListener('click', function(){
+  if(!st.bgImg){ toast('本来就没有底图'); return; }
+  st.bgImg = ''; bgState = {src:null, img:null, ready:null};
+  showBgUI(); scheduleRender(60); saveSoon(); toast('已清除底图');
+});
+function showBgUI(){
+  var has = !!st.bgImg;
+  $('rowBgMode').style.display = has ? 'flex' : 'none';
+  $('rowBgCtl').style.display = has ? 'block' : 'none';
+  $('bgThumbWrap').style.display = has ? 'block' : 'none';
+  if(has) $('bgThumb').src = st.bgImg;
+  $('bgInfo').textContent = has ? '已设置' : '未设置';
+}
+$('inSide').addEventListener('input', function(){
+  st.sideText = this.value;
+  st.sideOn = !!st.sideText.trim();
+  scheduleRender(); saveSoon();
+});
 ['inMast','inTitle','inBody','inSign'].forEach(function(id){
   $(id).addEventListener('input', function(){
     st[{inMast:'masthead', inTitle:'title', inBody:'body', inSign:'sign'}[id]] = this.value;
@@ -1241,10 +1632,13 @@ $('ckRepeat').addEventListener('change', function(){ st.repeatTitle = this.check
 $('btnExample').addEventListener('click', function(){
   $('inMast').value = 'THE ESSAY · 2026';
   $('inTitle').value = '撒娇考';
-  $('inBody').value = '那天下午没什么事。\n\n说"没什么事"其实也不太对——沈容膝盖上摊着一份委员会的会议纪要，纸质版，他习惯在重要段落旁边用铅笔画竖线，偶尔写两个字的批注。零落躺在沙发另一头，脚搁在他大腿上，一只棉袜是灰色的，另一只是深蓝色。手机举在脸上方，正在看一只柴犬被主人骗去洗澡、在浴室里四脚刨地企图逃跑的视频。\n\n音量开得不大，但柴犬哀怨的嚎叫还是从手机里溢出来，断断续续地和窗外的鸟鸣搅在一起。\n\n沈容翻了一页纸，没抬头。\n\n零落笑了一声，很轻。她把手机屏幕转过去冲着沈容的方向晃了晃："你看这个。"\n\n"嗯？"\n\n他应了一声，笔尖在纸页边缘顿了顿，画下一道竖线。\n\n"这有什么好笑的。"\n\n"柴犬。"';
+  $('inSide').value = '零落的碎碎念';
+  $('inBody').value = '那天下午没什么事。\n\n说"没什么事"其实也不太对——沈容膝盖上摊着一份委员会的会议纪要，纸质版，他习惯在重要段落旁边用铅笔画竖线，偶尔写两个字的批注。零落躺在沙发另一头，脚搁在他大腿上，一只棉袜是灰色的，另一只是深蓝色。手机举在脸上方，正在看一只柴犬被主人骗去洗澡、在浴室里四脚刨地企图逃跑的视频。\n\n## 声音与气味\n\n音量开得不大，但柴犬哀怨的嚎叫还是从手机里溢出来，断断续续地和窗外的鸟鸣搅在一起。**那声音其实挺好听的**，像有人在很远的地方哼歌。\n\n> 他没抬头。笔尖在纸页边缘顿了顿，画下一道竖线。\n\n- 阳光从百叶窗缝里漏进来\n- 茶几上摊着两杯凉透的茶\n- {{E0A87E}}她把屏幕转过去冲着他的方向晃了晃{{/}}\n\n沈容翻了一页纸，零落笑了一声，很轻。\n\n"你看这个。"\n\n"嗯？"\n\n"这有什么好笑的。"\n\n"柴犬。"';
   $('inSign').value = '';
-  st.masthead = $('inMast').value; st.title = $('inTitle').value; st.body = $('inBody').value; st.sign = '';
-  scheduleRender(60); saveSoon(); toast('示例已填入');
+  st.masthead = $('inMast').value; st.title = $('inTitle').value; st.body = $('inBody').value;
+  st.sideText = $('inSide').value; st.sideOn = !!st.sideText.trim(); st.sign = '';
+  $('foldSide').classList.add('open');
+  scheduleRender(60); saveSoon(); toast('示例已填入（含竖排侧题与富文本）');
 });
 $('btnPaste').addEventListener('click', async function(){
   try{
@@ -1276,22 +1670,30 @@ function syncUI(){
     var input = document.querySelector('input[type=range][data-key=' + key + ']');
     if(input){ input.value = st[key]; $(RANGE_LAB[key]).textContent = RANGE_FMT[key](input.value); }
   });
-  ['align','indent','width','format','sliceMode'].forEach(syncSeg);
-  ['selRule','selOrn','selDrop','selFooter'].forEach(function(id){
-    $(id).value = st[{selRule:'rule', selOrn:'orn', selDrop:'dropCap', selFooter:'footer'}[id]];
-  });
   $('ckRepeat').checked = st.repeatTitle;
   $('inSliceChars').value = st.sliceChars;
   $('inSliceCount').value = st.sliceCount;
   $('inMast').value = st.masthead; $('inTitle').value = st.title;
   $('inBody').value = st.body; $('inSign').value = st.sign;
+  $('inSide').value = st.sideText;
   $('inCss').value = st.customCss || '';
-  syncColorInputs(); markSwatch(); markPresetChips(); markFontChips(); syncModeRows();
+  Array.prototype.forEach.call(document.querySelectorAll('.seg[data-key]'), function(seg){ syncSeg(seg.dataset.key); });
+  ['selRule','selOrn','selDrop','selFooter'].forEach(function(id){
+    $(id).value = st[{selRule:'rule', selOrn:'orn', selDrop:'dropCap', selFooter:'footer'}[id]];
+  });
+  syncColorInputs(); markSwatch(); markPresetChips(); markFontChips(); syncModeRows(); showBgUI();
 }
+
+/* 折叠区统一交互 */
+Array.prototype.forEach.call(document.querySelectorAll('.fold'), function(f){
+  var hd = f.querySelector('.fold-h');
+  if(hd) hd.addEventListener('click', function(){ f.classList.toggle('open'); });
+});
 
 /* 初始化 */
 syncUI();
 if(st.customCss) applyCustomCss(st.customCss);
+if(st.bgImg) ensureBgImage().then(function(){ scheduleRender(0); });
 if(canShareFiles()) $('btnShareAll').style.display = 'block';
 scheduleRender(50);
 </script>
