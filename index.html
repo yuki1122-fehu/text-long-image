@@ -1545,6 +1545,7 @@ var AI_PROMPT = [
 '  **文字**    → 加粗（用于关键论点、结论、情绪落点。每 300 字最多 1 处，不要滥用）',
 '  {{RRGGBB}}文字{{/}} → 变色（仅在确实需要强调时用，最多 1~2 处）',
 '  空行        → 分段。不要用连续三个以上空行。',
+'  ⚠️ 每个标记（# / ## / > / -）必须独占一行，后面紧跟正文，中间不要粘连别的段落。',
 '',
 '【硬性要求】',
 '  1. 不要改动、不要删减、不要重写原句的措辞。只允许重新分段、加标记、调整顺序（若原文有明显笔误可修正）。',
@@ -1581,14 +1582,21 @@ function aiBuildMessages(text, style, imgCount){
   return [{role:'system', content:sys}, {role:'user', content:text}];
 }
 
-async function aiCall(messages, onDelta){
+/* 单次调用。空内容/网络中断类错误值得自动重试一次 —— 这类是概率性的，
+   重跑一次通常就好了；401/402 这类确定性错误重试也没用，交给上层处理。 */
+async function aiCallOnce(messages, onDelta){
   var key = aiGetKey();
   if(!key) throw new Error('还没填 API Key');
-  var res = await fetch(AI_API, {
-    method:'POST',
-    headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + key},
-    body: JSON.stringify({model: AI_MODEL, messages: messages, stream: true, temperature: 0.6})
-  });
+  var res;
+  try{
+    res = await fetch(AI_API, {
+      method:'POST',
+      headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + key},
+      body: JSON.stringify({model: AI_MODEL, messages: messages, stream: true, temperature: 0.6})
+    });
+  }catch(e){
+    throw new Error('连不上服务器，检查网络后重试');
+  }
   if(!res.ok){
     var t = '';
     try{ t = (await res.json()).error?.message || ''; }catch(e){}
@@ -1597,25 +1605,58 @@ async function aiCall(messages, onDelta){
     if(res.status === 429) throw new Error('请求太频繁，稍后再试');
     throw new Error('接口报错 ' + res.status + (t ? '：' + t : ''));
   }
-  /* SSE 流式解析 */
-  var reader = res.body.getReader(), dec = new TextDecoder(), buf = '', full = '';
+  /* SSE 流式解析
+     四个坑（都实测踩过）：
+       1) slice 偏移：'data: {...}' 要去掉的是 5 个字符（'data:' + 空格），
+          写成 slice(1) 会得到 'ata: {...}'，JSON.parse 必然失败 ——
+          而失败被 catch 吞掉，症状就是「AI 返回内容为空」，且 100% 必现
+       2) 残留缓冲：循环遇到 r.done 就 break，最后一条不带换行的 data 行会被丢掉
+       3) 200 里裹 error：某些网关会用 200 返回 {error:{message}}，不解析就变成空
+       4) [DONE] 结束标记不是 JSON，要显式跳过 */
+  var reader = res.body.getReader(), dec = new TextDecoder(), buf = '', full = '', apiErr = '';
+  function eat(line){
+    var ln = line.trim();
+    if(!ln || ln.slice(0, 5) !== 'data:') return;
+    var payload = ln.slice(5).trim();          /* 关键：去掉 'data:' 5 个字符 */
+    if(!payload || payload === '[DONE]') return;
+    try{
+      var j = JSON.parse(payload);
+      if(j.error){ apiErr = j.error.message || JSON.stringify(j.error); return; }
+      var c = j.choices?.[0]?.delta?.content;
+      if(c){ full += c; onDelta(full); }
+    }catch(e){}
+  }
   while(true){
     var r = await reader.read();
-    if(r.done) break;
-    buf += dec.decode(r.value, {stream:true});
+    if(r.value) buf += dec.decode(r.value, {stream:true});
+    if(r.done){ eat(buf); break; }          /* done 后仍要吃掉残留的那一行 */
     var parts = buf.split('\n');
     buf = parts.pop();
-    for(var i=0;i<parts.length;i++){
-      var ln = parts[i].trim();
-      if(!ln || ln.charAt(0) !== 'd') continue;
-      try{
-        var j = JSON.parse(ln.slice(1));
-        var c = j.choices?.[0]?.delta?.content;
-        if(c){ full += c; onDelta(full); }
-      }catch(e){}
+    for(var i=0;i<parts.length;i++) eat(parts[i]);
+  }
+  if(apiErr) throw new Error('接口返回错误：' + apiErr);
+  if(!full.trim()) throw new Error('EMPTY');   /* 交给外层判断要不要重试 */
+  return full;
+}
+/* 带一次自动重试的调用。
+   「空内容」和「连不上」都是概率性的（网络切块、模型繁忙），
+   自动重试一次能救回绝大多数；401/402/429 直接抛出，不浪费重试。 */
+async function aiCall(messages, onDelta){
+  var last = null;
+  for(var attempt=0; attempt<2; attempt++){
+    try{
+      if(attempt > 0) onDelta('');
+      return await aiCallOnce(messages, onDelta);
+    }catch(err){
+      last = err;
+      var msg = err.message || String(err);
+      /* 确定性错误不重试 */
+      if(/Key 无效|余额不足|请求太频繁|连不上服务器|还没填/.test(msg)) throw err;
+      if(msg !== 'EMPTY') throw err;
+      if(attempt === 0) await sleep(900);
     }
   }
-  return full;
+  throw new Error('模型连续两次返回空内容，可能是网络不稳定或模型繁忙，等会儿再试');
 }
 
 /* 拆出 <!--FIT:...--> 这行，其余是排版后的正文 */
@@ -1656,9 +1697,10 @@ var userImgs = [];   /* 用户在「版式」页上传的底图，按上传顺�
 
 function aiSetStatus(cls, msg){ $('aiStatus').className = 'status ' + cls; $('aiStatus').textContent = msg; }
 /* IMG 标记的统一处理。
-   注意：不能用 /(^|\n)\s*IMG:\d+\s*(\n|$)/g 这种带捕获组的写法 ——
-   替换成 '$1' 时会吃掉换行符，导致相邻两行只删掉一行（实测踩过）。
-   改成「按行匹配 + 整行含换行一起删」，再折叠多余空行。 */
+   注意：不能用「捕获组 + 替换成 $1」那种写法 —— 捕获组会把换行符一起吃掉，
+   导致相邻两行只删掉一行（实测踩过）。
+   正确做法：按行匹配 + 整行含换行一起删，再折叠多余空行。
+   （注释里刻意不写含 * / 的正则字面量：那样会提前闭合块注释。） */
 var IMG_LINE_RE = /^[ \t]*IMG:[ \t]*\d+[ \t]*\n?/gm;
 function aiStripImg(text){
   return (text || '').replace(IMG_LINE_RE, '').replace(/\n{3,}/g, '\n\n').trim();
@@ -2115,20 +2157,39 @@ $('btnAiRun').addEventListener('click', async function(){
   try{
     var raw = await aiCall(aiBuildMessages(text, aiCurStyle(), useImg ? userImgs.length : 0),
       function(full){
-        /* 流式反馈：只显示已生成的字数，让用户知道在动 */
+        /* 流式反馈：只显示已生成的字数，让用户知道在动。
+           full 为空串 = 重试新一轮，把状态改成「重新尝试」而不是「已生成 0 字」 */
+        if(!full){ aiSetStatus('busy', '首次没拿到内容，正在重试…'); return; }
         aiSetStatus('busy', 'AI 正在排版…已生成 ' + full.replace(/<!--[\s\S]*?-->/g,'').length + ' 字');
       });
     var r = aiParse(raw);
-    if(!r.body || r.body.length < 5) throw new Error('AI 返回内容为空，重试一次');
+    /* 剥掉 FIT 注释后还几乎没内容 = 模型只吐了参数没排版，或正文被标记吃掉了。
+       把原始长度报出来，便于分辨是「模型没干活」还是「解析有问题」。 */
+    if(!r.body || r.body.length < 5){
+      var onlyComment = raw.replace(/<!--[\s\S]*?-->/g,'').trim().length < 5;
+      throw new Error(onlyComment
+        ? '模型只返回了排版参数、没有正文。换个风格或重跑一次试试'
+        : '模型返回内容过短（' + r.body.length + ' 字），建议重跑');
+    }
 
     aiUndoStack.push(aiSnapshot());
     if(aiUndoStack.length > 10) aiUndoStack.shift();
 
     /* 回填：正文（含 IMG 标记）*/
     st.body = r.body;
-    /* 首个 # 标题回填到标题栏（若用户原本没填标题）*/
-    var hm = /^\s*#\s+(.+)$/m.exec(r.body);
-    if(hm && !st.title.trim()) st.title = hm[1].trim().slice(0, 40);
+    /* 首个 # 标题回填到标题栏（仅当用户原本没填标题）。
+       顺手剥掉行内标记并限长：标题栏是单行输入，带 ** 或 {{}} 会很难看。
+       变量名避开 t0 —— 同函数下方已用 t0 记开始时间，var 提升会互相覆盖。 */
+    var hm = /^[ \t]*#[ \t]+(.+)$/m.exec(r.body);
+    if(hm && !st.title.trim()){
+      var cleanTitle = hm[1]
+        .replace(/\*\*/g, '').replace(/~~/g, '')
+        .replace(/\{\{[0-9a-fA-F]{3,8}\}\}/g, '').replace(/\{\{\/\}\}/g, '')
+        .replace(/<[^>]*>/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if(cleanTitle) st.title = cleanTitle.slice(0, 40);
+    }
 
     var applied = aiApplyFit(r.fit);
     /* 未勾选配图时，把 IMG 标记清掉，避免正文里留死标记 */
