@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e1210">
+<title>文字长图工坊</title>
+<link rel="manifest" href='data:application/manifest+json,{"name":"文字长图工坊","short_name":"长图","start_url":".","display":"standalone","orientation":"portrait","background_color":"#0e1210","theme_color":"#0e1210","icons":[{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAIAAAB7GkOtAAAF+ElEQVR42u3XUQ1DIRREwdLgAx83QQoOkIMDvKCrJngJvM5I2J+TTaXGB4D/8zUBgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAACAAAAgCAAAAgAAAIAAACAIAAACAAANwhm+B8aw4jcKNo3QgeAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAADcIZUaVgDwAAAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAAAEAAABAGCDbILzrTmMwI2idSN4AAAIAAACAIAAACAAAAgAAAIAgAAAsEMqNawA4AEAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAD8gmON+awwjcKFo3ggcAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAB7pVLDCgAeAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAMBjsgnOt+YwAjeK1o3gAQAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAwF6p1LACgAcAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAA8JhsgvOtOYzAjaJ1I3gAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAACwVyo1rADgAQAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAA8JpvgfGsOI7xbtG4EPAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAAAEAEAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAAAEAEAAABAAAAQBAAAAQAABe4wc//hmLXAtXXQAAAABJRU5ErkJggg==","sizes":"512x512","type":"image/png","purpose":"any"}]}'>
+<link rel="apple-touch-icon" href="data:image/png;base64,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">
+<style>
+:root{
+  --bg:#0e1210; --panel:#151c18; --panel2:#1d2620; --line:#2a352e;
+  --tx:#e8e6dc; --tx2:#93a096; --acc:#8fc7a5; --acc-tx:#0f241a;
+  --warn:#e6c07a; --danger:#e08c7c;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg); color:var(--tx);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif;
+  height:100dvh; display:flex; flex-direction:column; overflow:hidden;
+  max-width:600px; margin:0 auto;
+}
+header{
+  padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;
+  display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+  border-bottom:1px solid var(--line); flex:none;
+}
+header h1{font-size:17px; margin:0; font-weight:700; letter-spacing:1px;}
+header .stats{font-size:12px; color:var(--tx2); white-space:nowrap;}
+#previewWrap{flex:1; overflow:auto; padding:14px 12px 20px; -webkit-overflow-scrolling:touch;}
+#pv{display:block; width:100%; border-radius:10px; box-shadow:0 4px 24px rgba(0,0,0,.45);}
+#pvTip{
+  position:sticky; top:8px; z-index:5; width:fit-content; margin:0 auto 8px;
+  background:rgba(10,14,12,.82); border:1px solid var(--line); border-radius:99px;
+  font-size:11px; color:var(--tx2); padding:5px 12px; display:none;
+}
+#pvTip.show{display:block;}
+.empty-hint{color:var(--tx2); font-size:13px; text-align:center; margin-top:40px; line-height:2;}
+#sheet{flex:none; background:var(--panel); border-top:1px solid var(--line); border-radius:16px 16px 0 0; overflow:hidden;}
+#tabs{display:flex; border-bottom:1px solid var(--line);}
+#tabs button{flex:1; padding:11px 0 9px; background:none; border:none; color:var(--tx2); font-size:13px; font-weight:600; border-bottom:2px solid transparent; cursor:pointer;}
+#tabs button.on{color:var(--acc); border-bottom-color:var(--acc);}
+.panel{display:none; padding:12px 16px calc(env(safe-area-inset-bottom) + 14px); max-height:47dvh; overflow:auto;}
+.panel.on{display:block;}
+.row{margin:12px 0 0;}
+.row:first-child{margin-top:2px;}
+.lab{display:flex; justify-content:space-between; align-items:baseline; font-size:12.5px; color:var(--tx2); margin-bottom:6px; gap:8px;}
+.lab b{color:var(--tx); font-weight:600; font-size:13px;}
+.lab .val{color:var(--acc); font-variant-numeric:tabular-nums; white-space:nowrap;}
+input[type=text], textarea, select{
+  width:100%; background:var(--panel2); border:1px solid var(--line); border-radius:10px;
+  color:var(--tx); font-size:16px; padding:10px 12px; outline:none; resize:none;
+  font-family:inherit; line-height:1.6;
+}
+input[type=number]{width:100%; background:var(--panel2); border:1px solid var(--line); border-radius:10px; color:var(--tx); font-size:16px; padding:10px 12px; outline:none; font-family:inherit;}
+input[type=text]:focus, textarea:focus, select:focus{border-color:var(--acc);}
+textarea{min-height:120px;} textarea#inBody{min-height:200px;} textarea#inCss{min-height:120px; font-size:12.5px; font-family:ui-monospace,Menlo,Consolas,monospace;}
+.mini-btns{display:flex; gap:8px; margin-top:8px;}
+.mini-btns button{flex:1; background:var(--panel2); border:1px solid var(--line); color:var(--tx2); border-radius:9px; padding:8px 0; font-size:12.5px; cursor:pointer;}
+.mini-btns button:active{border-color:var(--acc); color:var(--acc);}
+input[type=range]{width:100%; appearance:none; -webkit-appearance:none; height:26px; background:none; margin:0;}
+input[type=range]::-webkit-slider-runnable-track{height:4px; border-radius:2px; background:var(--panel2); border:1px solid var(--line);}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:22px; height:22px; border-radius:50%; background:var(--acc); margin-top:-10px; border:3px solid var(--bg); box-shadow:0 0 0 1px var(--acc);}
+.seg{display:flex; gap:6px; flex-wrap:wrap;}
+.seg button{flex:1; min-width:52px; padding:8px 0; border-radius:9px; border:1px solid var(--line); background:var(--panel2); color:var(--tx2); font-size:13px; cursor:pointer;}
+.seg button.on{background:var(--acc); color:var(--acc-tx); border-color:var(--acc); font-weight:700;}
+.chips{display:flex; gap:8px; flex-wrap:wrap;}
+.chips button{padding:8px 14px; border-radius:99px; border:1px solid var(--line); background:var(--panel2); color:var(--tx); font-size:13.5px; cursor:pointer;}
+.chips button.on{border-color:var(--acc); color:var(--acc); background:rgba(143,199,165,.08);}
+.chips button.loading{opacity:.55;}
+.swatches{display:flex; gap:10px; overflow-x:auto; padding:4px 2px 6px; -webkit-overflow-scrolling:touch;}
+.sw{flex:none; width:52px; text-align:center; cursor:pointer; border:none; background:none; padding:0;}
+.sw .circ{width:46px; height:46px; border-radius:50%; margin:0 auto; display:flex; align-items:center; justify-content:center; border:2px solid var(--line); font-size:17px; font-weight:600; transition:transform .15s;}
+.sw.on .circ{border-color:var(--acc); transform:scale(1.08); box-shadow:0 0 0 2px rgba(143,199,165,.25);}
+.sw .nm{font-size:10.5px; color:var(--tx2); margin-top:4px; white-space:nowrap;}
+.sw.on .nm{color:var(--acc);}
+.color-row{display:flex; gap:14px; margin-top:10px;}
+.color-row label{flex:1; text-align:center; font-size:11.5px; color:var(--tx2);}
+.color-row input[type=color]{width:100%; height:36px; border:1px solid var(--line); border-radius:9px; background:var(--panel2); padding:3px; cursor:pointer; margin-top:5px;}
+.sel-row{display:flex; align-items:center; gap:10px; margin:10px 0;}
+.sel-row span{font-size:13px; color:var(--tx2); min-width:88px; flex:none;}
+.sel-row select{flex:1; padding:8px 10px; font-size:14px;}
+.switch-row{display:flex; justify-content:space-between; align-items:center; padding:9px 2px; font-size:13.5px;}
+.switch-row input{width:20px; height:20px; accent-color:var(--acc);}
+.export-stats{background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:12.5px; color:var(--tx2); line-height:1.8; margin-top:10px;}
+.export-stats b{color:var(--acc); font-size:14px;}
+.export-stats .w{color:var(--warn);} .export-stats .d{color:var(--danger);}
+.btn{width:100%; padding:13px 0; border-radius:12px; border:none; font-size:15.5px; font-weight:700; cursor:pointer; margin-top:10px;}
+.btn.primary{background:var(--acc); color:var(--acc-tx);}
+.btn.ghost{background:var(--panel2); color:var(--tx); border:1px solid var(--line);}
+.btn:disabled{opacity:.4; cursor:default;}
+.slice-list{margin-top:10px;}
+.slice-item{display:flex; align-items:center; gap:10px; padding:8px 4px; border-bottom:1px dashed var(--line); font-size:12.5px; color:var(--tx2);}
+.slice-item .idx{color:var(--tx); font-weight:600; min-width:52px;}
+.slice-item .dim{flex:1; font-variant-numeric:tabular-nums;}
+.slice-item button{background:var(--panel2); border:1px solid var(--line); color:var(--tx2); border-radius:8px; padding:5px 12px; font-size:12px; cursor:pointer;}
+.slice-item button:active{color:var(--acc); border-color:var(--acc);}
+.note{font-size:11.5px; color:var(--tx2); opacity:.8; line-height:1.7; margin-top:8px;}
+.fold{border:1px dashed var(--line); border-radius:10px; padding:10px 12px; margin-top:12px;}
+.fold-h{display:flex; justify-content:space-between; align-items:center; font-size:13px; color:var(--tx); cursor:pointer; font-weight:600;}
+.fold-body{display:none; margin-top:10px;}
+.fold.open .fold-body{display:block;}
+.fold.open .fold-h .arw{transform:rotate(90deg);}
+.fold-h .arw{transition:transform .2s; color:var(--tx2); font-size:12px;}
+.status{font-size:12px; margin-top:8px; line-height:1.6; word-break:break-all;}
+.status.ok{color:var(--acc);} .status.bad{color:var(--danger);} .status.info{color:var(--tx2);}
+#overlay{position:fixed; inset:0; background:rgba(5,8,6,.6); backdrop-filter:blur(3px); display:none; align-items:center; justify-content:center; z-index:50;}
+#overlay.show{display:flex;}
+#overlay .card{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:22px 26px; width:min(78vw,300px); text-align:center;}
+#ovText{font-size:14px; margin-bottom:14px; line-height:1.7;}
+#ovBarWrap{height:8px; border-radius:4px; background:var(--panel2); overflow:hidden;}
+#ovBar{height:100%; width:0%; background:var(--acc); border-radius:4px; transition:width .2s;}
+#toast{position:fixed; left:50%; bottom:22%; transform:translateX(-50%); background:#242e28; color:var(--tx); border:1px solid var(--line); font-size:13px; padding:9px 18px; border-radius:99px; opacity:0; pointer-events:none; transition:opacity .25s; z-index:60; max-width:80vw; text-align:center;}
+#toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>文字长图工坊</h1>
+  <div class="stats" id="hdrStats">0 字 · 约 1 张</div>
+</header>
+
+<div id="previewWrap">
+  <div id="pvTip"></div>
+  <canvas id="pv" width="720" height="200"></canvas>
+  <div class="empty-hint" id="emptyHint" style="display:none">在下方「文本」页输入标题和正文<br>这里会实时生成排版预览</div>
+</div>
+
+<div id="sheet">
+  <nav id="tabs">
+    <button data-p="text" class="on">文 本</button>
+    <button data-p="style">版 式</button>
+    <button data-p="export">导 出</button>
+  </nav>
+
+  <div class="panel on" id="panel-text">
+    <div class="row">
+      <div class="lab"><b>刊头小字（可选）</b><span class="val">文艺杂志感装饰</span></div>
+      <input type="text" id="inMast" placeholder="如：THE ESSAY · 2026.10" maxlength="80">
+    </div>
+    <div class="row">
+      <div class="lab"><b>标题（可留空）</b></div>
+      <input type="text" id="inTitle" placeholder="如：撒娇考" maxlength="80">
+    </div>
+    <div class="row">
+      <div class="lab"><b>正文</b><span class="val" id="bodyCount">0 字</span></div>
+      <textarea id="inBody" placeholder="粘贴或输入正文……&#10;空行 = 分段（可变成间隔符），换行 = 手动换行"></textarea>
+    </div>
+    <div class="row">
+      <div class="lab"><b>文末落款（可选）</b></div>
+      <input type="text" id="inSign" placeholder="如：—— 零落 · 2026.10.03" maxlength="80">
+    </div>
+    <div class="mini-btns">
+      <button id="btnExample">填入示例</button>
+      <button id="btnPaste">粘贴正文</button>
+      <button id="btnClear">清空全部</button>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-style">
+    <div class="row">
+      <div class="lab"><b>版式预设</b><span class="val" id="presetName">杂志正文</span></div>
+      <div class="chips" id="presetChips"></div>
+      <div class="note">选版式会套用一套排版参数（字号/行距/边距/装饰），配色另外选、不冲突。</div>
+    </div>
+    <div class="row">
+      <div class="lab"><b>配色模板</b><span class="val" id="tplName">墨绿夜读</span></div>
+      <div class="swatches" id="swatches"></div>
+    </div>
+    <div class="color-row">
+      <label>背景<input type="color" id="cBg"></label>
+      <label>标题色<input type="color" id="cTitle"></label>
+      <label>正文色<input type="color" id="cText"></label>
+    </div>
+
+    <div class="row">
+      <div class="lab"><b>字体</b></div>
+      <div class="chips" id="fontChips"></div>
+      <div class="note" id="fontNote"></div>
+      <div class="fold" id="foldFont">
+        <div class="fold-h"><span>＋ 自定义字体（CSS / 文件）</span><span class="arw">›</span></div>
+        <div class="fold-body">
+          <div class="note" style="margin-top:0">粘贴任意 CSS（<code>@font-face</code>）或直接写字体名；字体文件链接需要支持跨域，推荐 jsDelivr / unpkg / GitHub raw。</div>
+          <textarea id="inCss" placeholder='@font-face {&#10;  font-family: "我的字体";&#10;  src: url("https://cdn.jsdelivr.net/gh/xxx/font.woff2") format("woff2");&#10;}'></textarea>
+          <div class="mini-btns">
+            <button id="btnCssSample">填示例</button>
+            <button id="btnCssApply">应用 CSS</button>
+            <button id="btnCssClear">清除</button>
+          </div>
+          <div class="row">
+            <div class="lab"><b>或上传字体文件</b><span class="val">ttf / otf / woff / woff2</span></div>
+            <input type="text" id="inUpName" placeholder="字体名（默认取文件名）">
+            <div class="mini-btns"><button id="btnUpload">选择字体文件</button></div>
+            <input type="file" id="fileFont" accept=".ttf,.otf,.woff,.woff2" style="display:none">
+          </div>
+          <div class="status info" id="fontStatus">未应用自定义字体</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="lab"><b>装饰细节</b></div>
+      <div class="sel-row"><span>标题线</span>
+        <select id="selRule">
+          <option value="none">无</option>
+          <option value="under">标题下通栏细线</option>
+          <option value="top-bottom">标题上下双线</option>
+          <option value="under-short">标题下居中短线</option>
+          <option value="double">标题下粗细双线</option>
+          <option value="leftbar">正文左侧竖线</option>
+        </select>
+      </div>
+      <div class="sel-row"><span>段落间隔符</span>
+        <select id="selOrn">
+          <option value="none">无（只用空距）</option>
+          <option value="diamond">❖ 菱形</option>
+          <option value="dot">· · · 三点</option>
+          <option value="line">— 短横</option>
+        </select>
+      </div>
+      <div class="sel-row"><span>首字下沉</span>
+        <select id="selDrop">
+          <option value="0">关闭</option>
+          <option value="2">下沉 2 行</option>
+          <option value="3">下沉 3 行</option>
+          <option value="4">下沉 4 行</option>
+        </select>
+      </div>
+      <div class="sel-row"><span>页脚</span>
+        <select id="selFooter">
+          <option value="none">无</option>
+          <option value="plain">居中页码 — 2 —</option>
+          <option value="rule">细线 + 居中页码</option>
+          <option value="corner">右下角页码 2 / 5</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="lab"><b>对齐 / 缩进</b></div>
+      <div style="display:flex; gap:10px;">
+        <div class="seg" data-key="align" style="flex:1">
+          <button data-v="left">左对齐</button>
+          <button data-v="center">居中</button>
+        </div>
+        <div class="seg" data-key="indent" style="flex:1">
+          <button data-v="no">无缩进</button>
+          <button data-v="yes">缩进两字</button>
+        </div>
+      </div>
+    </div>
+    <div class="row"><div class="lab"><b>标题字号</b><span class="val" id="vTitleSize"></span></div>
+      <input type="range" data-key="titleSize" min="28" max="90" step="2"></div>
+    <div class="row"><div class="lab"><b>正文字号</b><span class="val" id="vBodySize"></span></div>
+      <input type="range" data-key="bodySize" min="22" max="64" step="2"></div>
+    <div class="row"><div class="lab"><b>行距</b><span class="val" id="vLineHeight"></span></div>
+      <input type="range" data-key="lineHeight" min="1.4" max="2.8" step="0.05"></div>
+    <div class="row"><div class="lab"><b>段距</b><span class="val" id="vParaGap"></span></div>
+      <input type="range" data-key="paraGap" min="0" max="2.4" step="0.05"></div>
+    <div class="row"><div class="lab"><b>页边距</b><span class="val" id="vMargin"></span></div>
+      <input type="range" data-key="margin" min="40" max="220" step="4"></div>
+    <div class="row"><div class="lab"><b>字间距</b><span class="val" id="vLs"></span></div>
+      <input type="range" data-key="ls" min="0" max="8" step="0.5"></div>
+  </div>
+
+  <div class="panel" id="panel-export">
+    <div class="row">
+      <div class="lab"><b>每张容量</b><span class="val" id="sliceModeTip"></span></div>
+      <div class="seg" data-key="sliceMode">
+        <button data-v="height">按高度</button>
+        <button data-v="chars">按字数</button>
+        <button data-v="count">指定张数</button>
+      </div>
+    </div>
+    <div class="row" id="rowHeight">
+      <div class="lab"><b>每张最大高度</b><span class="val" id="vSliceHeight"></span></div>
+      <input type="range" data-key="sliceHeight" min="2000" max="40000" step="200">
+      <div class="note">向右拉 = 每张更长 = 张数更少，字号完全不变。超过安全线会标黄提示。</div>
+    </div>
+    <div class="row" id="rowChars" style="display:none">
+      <div class="lab"><b>每张最多放多少字</b></div>
+      <input type="number" id="inSliceChars" min="200" max="20000" step="100">
+      <div class="note">按整段切分（段落不会被拆开），字数越多张数越少。首张含标题。</div>
+    </div>
+    <div class="row" id="rowCount" style="display:none">
+      <div class="lab"><b>我想分成几张</b></div>
+      <input type="number" id="inSliceCount" min="1" max="80" step="1">
+      <div class="note">按内容高度平均切成 N 张，自动分配，长短一致。</div>
+    </div>
+
+    <div class="row">
+      <div class="lab"><b>图片宽度</b></div>
+      <div class="seg" data-key="width">
+        <button data-v="750">750 窄</button>
+        <button data-v="1080">1080 标准</button>
+        <button data-v="1440">1440 高清</button>
+      </div>
+    </div>
+    <div class="row">
+      <div class="lab"><b>图片格式</b></div>
+      <div class="seg" data-key="format">
+        <button data-v="png">PNG 清晰</button>
+        <button data-v="jpg">JPG 体积小</button>
+      </div>
+    </div>
+    <div class="row">
+      <div class="switch-row"><span>每张顶部重复标题</span><input type="checkbox" id="ckRepeat"></div>
+    </div>
+    <div class="export-stats" id="expStats"></div>
+    <button class="btn primary" id="btnSaveAll">全部保存到设备</button>
+    <button class="btn ghost" id="btnShareAll" style="display:none">全部分享 / 存相册</button>
+    <div class="slice-list" id="sliceList"></div>
+  </div>
+</div>
+
+<div id="overlay"><div class="card">
+  <div id="ovText">准备中…</div>
+  <div id="ovBarWrap"><div id="ovBar"></div></div>
+</div></div>
+<div id="toast"></div>
+
+<script>
+'use strict';
+/* ================= 预设数据 ================= */
+var TEMPLATES = [
+  {id:'pine',   name:'墨绿夜读', bg:'#1F3D3A', text:'#E5E0CE', title:'#E5E0CE'},
+  {id:'paper',  name:'米白纸',   bg:'#F7F3EA', text:'#3B3A36', title:'#33322E'},
+  {id:'white',  name:'纯白',     bg:'#FFFFFF', text:'#333333', title:'#222222'},
+  {id:'ink',    name:'黑底',     bg:'#101010', text:'#EDEDE6', title:'#F7F7F0'},
+  {id:'kraft',  name:'牛皮纸',   bg:'#E9DCC3', text:'#4A3A26', title:'#3E301E'},
+  {id:'dusk',   name:'雾蓝',     bg:'#2C3A52', text:'#D9E1EC', title:'#EAF0F8'},
+  {id:'blossom',name:'浅粉',     bg:'#F6E4E1', text:'#5C403C', title:'#4E3330'},
+  {id:'bamboo', name:'浅竹',     bg:'#EEF2E7', text:'#3D4A38', title:'#33402E'}
+];
+var FONT_DEFS = {
+  song: {label:'宋体',     stack:"'Songti SC','Noto Serif SC','STSong','SimSun',serif"},
+  hei:  {label:'黑体',     stack:"'PingFang SC','HarmonyOS Sans SC','Noto Sans SC','Microsoft YaHei',sans-serif"},
+  kai:  {label:'楷体',     stack:"'Kaiti SC','STKaiti','KaiTi','DFKai-SB',serif"},
+  fang: {label:'仿宋',     stack:"'Fangsong SC','STFangsong','FangSong',serif"},
+  yuan: {label:'圆体',     stack:"'Yuanti SC','STYuanti','Hiragino Maru Gothic ProN','PingFang SC',sans-serif"},
+  lxgw: {label:'霞鹜文楷', stack:"'LXGW WenKai Screen','Kaiti SC','STKaiti',serif",
+         web:true, family:'LXGW WenKai Screen',
+         css:'https://cdn.jsdelivr.net/npm/lxgw-wenkai-screen-webfont@1.7.0/style.css'}
+};
+/* 文艺杂志感版式预设 */
+var PRESETS = {
+  plain:    {name:'素排',     titleSize:50, bodySize:40, lineHeight:1.9,  paraGap:0.85, margin:96,  indent:'no',  align:'left',
+             deco:{rule:'none', orn:'none', dropCap:0, footer:'corner'}},
+  magazine: {name:'杂志正文', titleSize:56, bodySize:40, lineHeight:1.95, paraGap:0.9,  margin:104, indent:'yes', align:'left', font:'song',
+             deco:{rule:'under', orn:'none', dropCap:0, footer:'rule'}},
+  essay:    {name:'散文随想', titleSize:46, bodySize:38, lineHeight:2.15, paraGap:1.15, margin:112, indent:'no',  align:'center', font:'song',
+             deco:{rule:'under-short', orn:'diamond', dropCap:0, footer:'plain'}},
+  dropcap:  {name:'首字下沉', titleSize:54, bodySize:40, lineHeight:1.95, paraGap:0.9,  margin:100, indent:'no',  align:'left', font:'song',
+             deco:{rule:'under', orn:'none', dropCap:3, footer:'rule'}},
+  narrow:   {name:'窄栏留白', titleSize:48, bodySize:36, lineHeight:2.1,  paraGap:1.0,  margin:172, indent:'yes', align:'left', font:'hei',
+             deco:{rule:'none', orn:'none', dropCap:0, footer:'plain'}},
+  sidebar:  {name:'侧栏竖线', titleSize:50, bodySize:38, lineHeight:1.95, paraGap:0.95, margin:124, indent:'no',  align:'left', font:'song',
+             deco:{rule:'leftbar', orn:'none', dropCap:0, footer:'plain'}},
+  mast:     {name:'文艺刊头', titleSize:60, bodySize:40, lineHeight:2.0,  paraGap:1.0,  margin:112, indent:'no',  align:'center', font:'song',
+             deco:{rule:'double', orn:'dot', dropCap:0, footer:'rule', mast:true}},
+  verse:    {name:'诗集疏排', titleSize:44, bodySize:34, lineHeight:2.4,  paraGap:1.4,  margin:150, indent:'no',  align:'center', font:'kai',
+             deco:{rule:'under-short', orn:'line', dropCap:0, footer:'plain'}}
+};
+var ORN_SYM = {diamond:'❖', dot:'· · ·', line:'—'};
+var END_PUNCT   = '。，、；：？！…—～·%)%）」』”’〉】〕〉＞!?,.;:~';
+var START_PUNCT = '“‘（《「『〈【〔(<';
+var LS_KEY = 'textlongimg-v2';
+
+var DEFAULTS = {
+  masthead:'', title:'', body:'', sign:'',
+  tpl:'pine', c:{bg:'#1F3D3A', text:'#E5E0CE', title:'#E5E0CE'},
+  preset:'magazine', font:'song', align:'left', indent:'no',
+  rule:'none', orn:'none', dropCap:0, footer:'corner', mast:false,
+  titleSize:50, bodySize:40, lineHeight:1.9, paraGap:0.85, margin:96, ls:0,
+  width:1080, sliceMode:'height', sliceHeight:8400, sliceChars:1200, sliceCount:3,
+  format:'png', repeatTitle:false,
+  customCss:'', customFam:''
+};
+var st = loadSettings();
+var curLayout = null, curSlices = [], busy = false, webfontLinked = false;
+
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function loadSettings(){
+  var fresh = false;
+  var d = clone(DEFAULTS);
+  try{
+    var raw = localStorage.getItem(LS_KEY) || localStorage.getItem('textlongimg-v1');
+    if(!raw){ fresh = true; }
+    else{
+      var s = JSON.parse(raw);
+      for(var k in d){ if(k in s) d[k] = s[k]; }
+      if(typeof d.c !== 'object' || !d.c) d.c = clone(DEFAULTS.c);
+      for(var k2 in DEFAULTS.c){ if(!(k2 in d.c)) d.c[k2] = DEFAULTS.c[k2]; }
+      if(s.badge !== undefined && d.footer === undefined) d.footer = s.badge ? 'corner' : 'none';
+    }
+  }catch(e){ fresh = true; }
+  if(fresh) applyPresetTo(d, 'magazine');   /* 首次使用直接给杂志感 */
+  return d;
+}
+function applyPresetTo(target, id){
+  var p = PRESETS[id]; if(!p) return;
+  target.preset = id;
+  target.titleSize = p.titleSize; target.bodySize = p.bodySize;
+  target.lineHeight = p.lineHeight; target.paraGap = p.paraGap; target.margin = p.margin;
+  target.indent = p.indent; target.align = p.align;
+  if(p.font) target.font = p.font;
+  target.rule = p.deco.rule; target.orn = p.deco.orn; target.dropCap = p.deco.dropCap;
+  target.footer = p.deco.footer; target.mast = !!p.deco.mast;
+}
+var saveTimer = null;
+function saveSoon(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(function(){
+    try{ localStorage.setItem(LS_KEY, JSON.stringify(st)); }catch(e){}
+  }, 400);
+}
+
+/* ================= 小工具 ================= */
+function $(id){ return document.getElementById(id); }
+function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+function toast(msg){
+  var t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(function(){ t.classList.remove('show'); }, 2000);
+}
+function hex2rgb(h){
+  h = h.replace('#','');
+  if(h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+  var n = parseInt(h, 16);
+  return [(n>>16)&255, (n>>8)&255, n&255];
+}
+function mixHex(a, b, ratio){
+  var A = hex2rgb(a), B = hex2rgb(b), out = [];
+  for(var i=0;i<3;i++) out.push(Math.round(A[i]*ratio + B[i]*(1-ratio)));
+  return 'rgb('+out.join(',')+')';
+}
+function mutedColor(){ return mixHex(st.c.text, st.c.bg, 0.5); }
+function setFontX(ctx, size, family, weight, ls){
+  ctx.font = weight + ' ' + size + 'px ' + family;
+  try{ ctx.letterSpacing = (ls||0) + 'px'; }catch(e){}
+}
+function fontStack(){ return FONT_DEFS[st.font] ? FONT_DEFS[st.font].stack : "serif"; }
+
+/* ================= 分词 + 排版引擎 ================= */
+function tokenize(text){
+  var out = [], i = 0;
+  while(i < text.length){
+    var ch = text[i];
+    if(ch === ' ' || ch === '\t'){
+      out.push({k:'s', s:' '}); i++;
+      while(i < text.length && (text[i]===' '||text[i]==='\t')) i++;
+      continue;
+    }
+    if(/[A-Za-z0-9]/.test(ch)){
+      var j = i + 1;
+      while(j < text.length && /[A-Za-z0-9'’\-._/@&]/.test(text[j])) j++;
+      out.push({k:'w', s:text.slice(i, j)}); i = j;
+      continue;
+    }
+    out.push({k:'c', s:ch}); i++;
+  }
+  return out;
+}
+
+/* o.shrink = {n:行数, w:缩窄宽度}（首字下沉用） */
+function layoutPara(ctx, tokens, o){
+  var lines = [], cur = '', curW = 0, hung = false;
+  function availNow(){ return o.avail - (o.shrink && lines.length < o.shrink.n ? o.shrink.w : 0); }
+  function wOf(s){ setFontX(ctx, o.size, o.family, o.weight, o.ls); return ctx.measureText(s).width; }
+  function endLine(){
+    if(cur !== ''){ lines.push({text:cur, w:curW}); cur = ''; curW = 0; }
+    hung = false;
+  }
+  for(var i=0;i<tokens.length;i++){
+    var tk = tokens[i];
+    var w = wOf(tk.s);
+    var av = availNow();
+    if(tk.k === 's'){
+      if(curW === 0) continue;
+      if(curW + w > av){ endLine(); continue; }
+      cur += tk.s; curW += w; continue;
+    }
+    if(curW + w <= av){ cur += tk.s; curW += w; continue; }
+    if(tk.k === 'c' && END_PUNCT.indexOf(tk.s) >= 0 && cur !== '' && !hung){
+      cur += tk.s; curW += w; hung = true; continue;
+    }
+    if(tk.k === 'c' && START_PUNCT.indexOf(tk.s) >= 0){
+      endLine(); cur = tk.s; curW = w; continue;
+    }
+    if(tk.k === 'w' && w <= av){ endLine(); cur = tk.s; curW = w; continue; }
+    if(tk.k === 'w'){
+      endLine();
+      var rest = tk.s;
+      while(wOf(rest) > o.avail && rest.length > 1){
+        var lo = 1, hi = rest.length, best = 1;
+        while(lo <= hi){
+          var mid = (lo + hi) >> 1;
+          if(wOf(rest.slice(0, mid)) <= o.avail){ best = mid; lo = mid + 1; }
+          else hi = mid - 1;
+        }
+        var seg = rest.slice(0, best);
+        lines.push({text:seg, w:wOf(seg)});
+        rest = rest.slice(best);
+      }
+      cur = rest; curW = wOf(rest); continue;
+    }
+    endLine(); cur = tk.s; curW = w;
+  }
+  endLine();
+  return lines;
+}
+
+function pushTextLine(arr, ln, o){
+  ln.type = 'text';
+  arr.push(ln);
+}
+function buildLayout(ctx){
+  var W = st.width, m = st.margin, avail = W - m*2;
+  var fam = fontStack();
+  var L = {width:W, titleLines:[], bodyLines:[], titleH:0, height:0};
+  var lh = st.lineHeight;
+
+  /* 刊头小字 */
+  if(st.mast && st.masthead.trim()){
+    var mSize = Math.round(st.bodySize*0.52);
+    var mo = {size:mSize, family:fam, weight:400, avail:avail, ls:3};
+    var mls = layoutPara(ctx, tokenize(st.masthead.trim().toUpperCase()), mo);
+    for(var q=0;q<mls.length;q++){
+      L.titleLines.push({type:'text', text:mls[q].text, w:mls[q].w, x:(W-mls[q].w)/2,
+        size:mSize, weight:400, color:mutedColor(), h:mSize*lh, gapAfter:mSize*0.9, ls:3});
+    }
+  }
+  /* 标题上方线 */
+  if(st.rule === 'top-bottom' && st.title.trim()){
+    L.titleLines.push({type:'rule', span:'full', h:Math.round(st.titleSize*0.5), gapAfter:Math.round(st.titleSize*0.35)});
+  }
+  /* 标题 */
+  var titleCount = 0;
+  if(st.title.trim()){
+    var to = {size:st.titleSize, family:fam, weight:700, avail:avail, ls:st.ls};
+    var tls = layoutPara(ctx, tokenize(st.title.trim()), to);
+    titleCount = tls.length;
+    for(var i=0;i<tls.length;i++){
+      L.titleLines.push({type:'text', text:tls[i].text, w:tls[i].w,
+        x:(st.align==='center' ? (W-tls[i].w)/2 : m),
+        size:st.titleSize, weight:700, color:st.c.title, h:st.titleSize*lh,
+        gapAfter:(i===tls.length-1 ? st.titleSize*0.55 : 0), ls:st.ls});
+    }
+  }
+  /* 标题下方线 */
+  if(st.title.trim()){
+    if(st.rule === 'under' || st.rule === 'top-bottom'){
+      L.titleLines[L.titleLines.length-1].gapAfter = Math.round(st.titleSize*0.42);
+      L.titleLines.push({type:'rule', span:'full', h:Math.round(st.titleSize*0.55), gapAfter:Math.round(st.titleSize*0.7)});
+    }else if(st.rule === 'under-short'){
+      L.titleLines[L.titleLines.length-1].gapAfter = Math.round(st.titleSize*0.4);
+      L.titleLines.push({type:'rule', span:'short', h:Math.round(st.titleSize*0.5), gapAfter:Math.round(st.titleSize*0.75)});
+    }else if(st.rule === 'double'){
+      L.titleLines[L.titleLines.length-1].gapAfter = Math.round(st.titleSize*0.4);
+      L.titleLines.push({type:'rule', span:'full', h:Math.round(st.titleSize*0.3), gapAfter:Math.round(st.titleSize*0.16)});
+      L.titleLines.push({type:'rule', span:'full', h:Math.round(st.titleSize*0.3), gapAfter:Math.round(st.titleSize*0.78)});
+    }
+  }
+  L.titleH = L.titleLines.reduce(function(a,l){ return a + l.h + l.gapAfter; }, 0);
+
+  /* 正文 */
+  var paras = st.body.replace(/\r/g,'').split('\n');
+  var extraGap = 0, dropDone = false, dropPlaced = false, pendingShrink = null, pendingDrop = null;
+  for(var p=0;p<paras.length;p++){
+    var raw = paras[p];
+    if(!raw.trim()){
+      if(pendingShrink){
+        if(L.bodyLines.length) L.bodyLines[L.bodyLines.length-1].gapAfter += st.bodySize*0.5;
+      }else if(st.orn !== 'none'){
+        var last = L.bodyLines[L.bodyLines.length-1];
+        if(last && last.type !== 'orn'){
+          L.bodyLines.push({type:'orn', sym:ORN_SYM[st.orn], size:Math.round(st.bodySize*0.8),
+            h:Math.round(st.bodySize*1.6), gapAfter:Math.round(st.bodySize*0.5), color:mutedColor()});
+        }
+      }else{
+        extraGap += st.bodySize*lh*0.55;
+      }
+      continue;
+    }
+    if(extraGap > 0 && L.bodyLines.length){
+      L.bodyLines[L.bodyLines.length-1].gapAfter += extraGap; extraGap = 0;
+    }
+    var toks = tokenize(raw);
+    if(st.indent === 'yes' && st.align !== 'center'){
+      toks = [{k:'c', s:'\u3000'},{k:'c', s:'\u3000'}].concat(toks);
+    }
+    var bo = {size:st.bodySize, family:fam, weight:400, avail:avail, ls:st.ls};
+    if(st.dropCap > 0 && !dropDone && st.align !== 'center' && toks.length){
+      var dStr = toks[0].s;
+      if(START_PUNCT.indexOf(dStr) >= 0 && toks[1]) dStr += toks[1].s;
+      var dSize = Math.round(st.bodySize*lh*st.dropCap*0.84);
+      setFontX(ctx, dSize, fam, 700, 0);
+      var dW = ctx.measureText(dStr).width * 1.06;
+      var rows = Math.ceil(dSize*0.92 / (st.bodySize*lh));
+      if(dW < avail*0.45){
+        dropDone = true;
+        pendingShrink = {rows:rows, w:dW};
+        pendingDrop = {s:dStr, size:dSize, w:dW};
+        var cut = (dStr.length === 1) ? 1 : 2;
+        toks = toks.slice(cut);
+      }
+    }
+    if(pendingShrink){ bo.shrink = {n:pendingShrink.rows, w:pendingShrink.w}; }
+    var bls = layoutPara(ctx, toks, bo);
+    var paraChars = raw.replace(/\s/g,'').length;
+    var shrinkN = bo.shrink ? bo.shrink.n : 0;
+    var firstIdx = L.bodyLines.length;
+    for(var b=0;b<bls.length;b++){
+      L.bodyLines.push({
+        type:'text', text:bls[b].text, w:bls[b].w,
+        x:(st.align==='center' ? (W-bls[b].w)/2 : (b < shrinkN ? m + pendingShrink.w : m)),
+        size:st.bodySize, weight:400, color:st.c.text, h:st.bodySize*lh,
+        gapAfter:(b===bls.length-1 ? st.bodySize*st.paraGap : 0),
+        ls:st.ls, cc:bls[b].text.replace(/\s/g,'').length, pc:paraChars, ps:(b===0)
+      });
+    }
+    if(pendingDrop && !dropPlaced && bls.length > 0 && firstIdx < L.bodyLines.length){
+      L.bodyLines[firstIdx].drop = pendingDrop;
+      dropPlaced = true;
+    }
+    if(pendingShrink){
+      pendingShrink.rows -= bls.length;
+      if(pendingShrink.rows <= 0){ pendingShrink = null; pendingDrop = null; }
+    }
+  }
+  if(extraGap > 0 && L.bodyLines.length) L.bodyLines[L.bodyLines.length-1].gapAfter += extraGap;
+
+  /* 落款 */
+  if(st.sign.trim()){
+    var sSize = Math.round(st.bodySize*0.72);
+    if(L.bodyLines.length) L.bodyLines[L.bodyLines.length-1].gapAfter += sSize*lh*0.9;
+    var so = {size:sSize, family:fam, weight:400, avail:avail, ls:st.ls};
+    var sls = layoutPara(ctx, tokenize(st.sign.trim()), so);
+    for(var s=0;s<sls.length;s++){
+      L.bodyLines.push({type:'text', text:sls[s].text, w:sls[s].w, x:W-m-sls[s].w,
+        size:sSize, weight:400, color:mutedColor(), h:sSize*lh, gapAfter:0,
+        ls:st.ls, cc:0, pc:0, ps:false});
+    }
+  }
+  L.height = L.bodyLines.reduce(function(a,l){ return a + l.h + l.gapAfter; }, 0);
+  return L;
+}
+
+/* ================= 分片 ================= */
+function sliceHeightLimit(L){
+  if(st.sliceMode === 'chars') return null;
+  if(st.sliceMode === 'count'){
+    var n = Math.max(1, Math.min(80, st.sliceCount|0));
+    return Math.max(500, Math.ceil((L.height || 1) / n));
+  }
+  return st.sliceHeight;
+}
+function computeSlices(L){
+  var padT = Math.max(24, Math.round(st.margin*0.7));
+  var padB = Math.max(28, Math.round(st.margin*0.85));
+  if(st.footer === 'rule') padB += Math.round(st.bodySize*1.2);
+  else if(st.footer === 'plain' || st.footer === 'corner') padB += Math.round(st.bodySize*0.6);
+  var groups = [];
+
+  if(st.sliceMode === 'chars'){
+    var cur = [], cc = 0;
+    for(var i=0;i<L.bodyLines.length;i++){
+      var ln = L.bodyLines[i];
+      if(cur.length > 0 && ln.type === 'text' && ln.ps && (cc + ln.pc > st.sliceChars)){
+        groups.push(cur); cur = []; cc = 0;
+      }else if(cur.length > 0 && ln.type === 'text' && cc + (ln.cc||0) > st.sliceChars * 1.6){
+        groups.push(cur); cur = []; cc = 0;
+      }
+      cur.push(ln); cc += (ln.cc || 0);
+    }
+    if(cur.length > 0 || groups.length === 0) groups.push(cur);
+  }else{
+    var maxH = sliceHeightLimit(L) || 8400;
+    var cur2 = [], used = 0;
+    for(var j=0;j<L.bodyLines.length;j++){
+      var l2 = L.bodyLines[j];
+      if(cur2.length > 0 && used + l2.h > maxH){ groups.push(cur2); cur2 = []; used = 0; }
+      cur2.push(l2); used += l2.h + l2.gapAfter;
+    }
+    if(cur2.length > 0 || groups.length === 0) groups.push(cur2);
+  }
+
+  return groups.map(function(g, gi){
+    var inner = 0;
+    for(var j=0;j<g.length;j++) inner += g[j].h + (j < g.length-1 ? g[j].gapAfter : 0);
+    var withTitle = (gi === 0 || st.repeatTitle) && L.titleH > 0;
+    return {idx:gi+1, lines:g, padT:padT, padB:padB, withTitle:withTitle,
+            h:Math.round(padT + (withTitle ? L.titleH : 0) + inner + padB)};
+  });
+}
+
+/* ================= 绘制 ================= */
+function drawLine(ctx, ln, dy, W, m, avail){
+  var fam = fontStack();
+  if(ln.type === 'rule'){
+    var lw = (ln.span === 'short') ? avail*0.3 : avail;
+    var x0 = (ln.span === 'short') ? (W - lw)/2 : m;
+    var thick = Math.max(1, Math.round(1.6*st.width/1080));
+    ctx.save();
+    ctx.globalAlpha = 0.55; ctx.fillStyle = mutedColor();
+    ctx.fillRect(x0, dy + ln.h*0.45, lw, thick);
+    ctx.restore();
+    return;
+  }
+  if(ln.type === 'orn'){
+    ctx.save();
+    ctx.globalAlpha = 0.75; ctx.fillStyle = ln.color || mutedColor();
+    setFontX(ctx, ln.size, fam, 400, 0);
+    var ow = ctx.measureText(ln.sym).width;
+    ctx.fillText(ln.sym, (W-ow)/2, dy + ln.h*0.5);
+    ctx.restore();
+    return;
+  }
+  setFontX(ctx, ln.size, fam, ln.weight, ln.ls || st.ls);
+  ctx.fillStyle = ln.color;
+  ctx.fillText(ln.text, ln.x, dy + ln.h/2);
+  if(ln.drop){
+    setFontX(ctx, ln.drop.size, fam, 700, 0);
+    ctx.fillStyle = ln.color;
+    ctx.fillText(ln.drop.s, ln.x - ln.drop.w, dy + ln.drop.size*0.5);
+  }
+}
+function drawDoc(ctx, L, parts, startY){
+  var W = L.width, m = st.margin, avail = W - m*2;
+  var dy = startY;
+  function seq(arr){
+    for(var i=0;i<arr.length;i++){
+      drawLine(ctx, arr[i], dy, W, m, avail);
+      dy += arr[i].h + (i === arr.length-1 ? 0 : arr[i].gapAfter);
+    }
+  }
+  if(parts.title) seq(L.titleLines);
+  seq(parts.lines);
+  return dy;
+}
+function drawFooter(ctx, L, slice, total){
+  if(st.footer === 'none') return;
+  var W = L.width, m = st.margin;
+  var fam = fontStack();
+  var fSize = Math.max(20, Math.round(st.bodySize*0.66));
+  ctx.save();
+  ctx.fillStyle = mutedColor();
+  if(st.footer === 'corner'){
+    ctx.globalAlpha = 0.72;
+    setFontX(ctx, fSize, fam, 400, 0);
+    ctx.textAlign = 'right';
+    ctx.fillText(slice.idx + ' / ' + total, W - m, slice.h - Math.round(slice.padB*0.34));
+    ctx.textAlign = 'left';
+  }else{
+    var cy = slice.h - Math.round(slice.padB*0.30);
+    if(st.footer === 'rule'){
+      var lw = (W - m*2)*0.34, thick = Math.max(1, Math.round(1.4*st.width/1080));
+      ctx.globalAlpha = 0.5;
+      ctx.fillRect((W-lw)/2, slice.h - Math.round(slice.padB*0.78), lw, thick);
+    }
+    ctx.globalAlpha = 0.72;
+    setFontX(ctx, fSize, fam, 400, 2);
+    var txt = '— ' + slice.idx + ' —';
+    var tw = ctx.measureText(txt).width;
+    ctx.fillText(txt, (W - tw)/2, cy - fSize*0.25);
+  }
+  ctx.restore();
+}
+function drawSliceCanvas(L, slice, total){
+  var c = document.createElement('canvas');
+  c.width = L.width; c.height = slice.h;
+  var x = c.getContext('2d');
+  x.fillStyle = st.c.bg; x.fillRect(0, 0, L.width, slice.h);
+  x.textBaseline = 'middle'; x.textAlign = 'left';
+  /* 侧栏竖线 */
+  if(st.rule === 'leftbar'){
+    x.save();
+    x.globalAlpha = 0.45; x.fillStyle = mutedColor();
+    var bx = Math.round(st.margin*0.55), bt = Math.max(2, Math.round(1.8*st.width/1080));
+    x.fillRect(bx, slice.padT*0.6, bt, slice.h - slice.padT*0.6 - slice.padB*0.6);
+    x.restore();
+  }
+  drawDoc(x, L, {title:slice.withTitle, lines:slice.lines}, slice.padT);
+  drawFooter(x, L, slice, total);
+  return c;
+}
+
+/* ================= 预览 ================= */
+var PV_W = 720, PV_MAX_H = 12000;
+function drawPreview(L){
+  var pv = $('pv');
+  var padT = Math.max(24, Math.round(st.margin*0.7));
+  var padB = Math.max(28, Math.round(st.margin*0.85));
+  if(st.footer === 'rule') padB += Math.round(st.bodySize*1.2);
+  else if(st.footer !== 'none') padB += Math.round(st.bodySize*0.6);
+  var fullH = padT + L.height + padB;
+  var scale = PV_W / L.width;
+  var H = Math.min(Math.round(fullH*scale), PV_MAX_H);
+  pv.width = PV_W; pv.height = Math.max(H, 40);
+  var x = pv.getContext('2d');
+  x.setTransform(scale, 0, 0, scale, 0, 0);
+  x.fillStyle = st.c.bg; x.fillRect(0, 0, L.width, H/scale);
+  x.textBaseline = 'middle'; x.textAlign = 'left';
+  var hasContent = L.titleLines.length + L.bodyLines.length > 0;
+  $('emptyHint').style.display = hasContent ? 'none' : 'block';
+  pv.style.display = hasContent ? 'block' : 'none';
+  if(!hasContent){ $('pvTip').classList.remove('show'); return; }
+  if(st.rule === 'leftbar'){
+    x.save(); x.globalAlpha = 0.45; x.fillStyle = mutedColor();
+    x.fillRect(Math.round(st.margin*0.55), padT*0.6, Math.max(2, Math.round(1.8*st.width/1080)),
+               (H/scale) - padT*0.6 - padB*0.6);
+    x.restore();
+  }
+  drawDoc(x, L, {title:true, lines:L.bodyLines}, padT);
+  var tip = $('pvTip');
+  if(fullH*scale > H + 1){
+    tip.textContent = '预览只显示前一段，导出会完整生成 ' + computeSlices(L).length + ' 张 ↓';
+    tip.classList.add('show');
+  }else tip.classList.remove('show');
+}
+
+/* ================= 字体 ================= */
+async function ensureFont(){
+  var def = FONT_DEFS[st.font];
+  if(!def) return;
+  if(def.web){
+    try{
+      if(!webfontLinked){
+        var link = document.createElement('link');
+        link.rel = 'stylesheet'; link.href = def.css;
+        document.head.appendChild(link);
+        webfontLinked = true;
+      }
+      var sample = (st.title + ' ' + st.body).slice(0, 6000) || '文字长图工坊预览0123';
+      await Promise.race([
+        Promise.all([
+          document.fonts.load('400 40px "' + def.family + '"', sample),
+          document.fonts.load('700 40px "' + def.family + '"', sample)
+        ]), sleep(8000)]);
+    }catch(e){}
+  }else if(def.uploaded){
+    try{ await Promise.race([document.fonts.load('400 40px "' + def.family + '"', '预'), sleep(2000)]); }catch(e){}
+  }
+}
+var customStyleEl = null;
+function extractFamilies(css){
+  var fams = [];
+  var re = /font-family\s*:\s*([^;{}]+)/g, m;
+  while((m = re.exec(css)) !== null){
+    var v = m[1].trim().replace(/^['"]|['"]$/g, '').trim();
+    if(v && fams.indexOf(v) < 0) fams.push(v);
+  }
+  return fams;
+}
+function applyCustomCss(css){
+  css = (css || '').trim();
+  if(!css){
+    if(customStyleEl) customStyleEl.textContent = '';
+    delete FONT_DEFS.custom;
+    var oldChip = $('fontChips').querySelector('[data-id=custom]');
+    if(oldChip) oldChip.remove();
+    setFontStatus('info', '已清除自定义字体');
+    if(st.font === 'custom') st.font = 'song';
+    markFontChips(); syncSeg('align'); scheduleRender(60); saveSoon();
+    return;
+  }
+  if(!customStyleEl){
+    customStyleEl = document.createElement('style');
+    customStyleEl.id = 'customFontStyle';
+    document.head.appendChild(customStyleEl);
+  }
+  customStyleEl.textContent = css;
+  var fams = extractFamilies(css);
+  var fam = fams.length ? fams[0] : css.replace(/['"]/g,'').trim();
+  FONT_DEFS.custom = {label:'自定义', stack:'"' + fam + '"', family:fam, custom:true};
+  st.customFam = fam; st.font = 'custom';
+  markFontChips();
+  var sample = (st.title + ' ' + st.body).slice(0, 4000) || '文字长图工坊预览';
+  Promise.race([
+    Promise.all([document.fonts.load('400 40px "' + fam + '"', sample),
+                 document.fonts.load('700 40px "' + fam + '"', sample)]),
+    sleep(6000)
+  ]).then(function(){
+    var ok = false;
+    try{ ok = document.fonts.check('400 40px "' + fam + '"'); }catch(e){ ok = true; }
+    if(ok) setFontStatus('ok', '✅ 已应用字体「' + fam + '」，画布预览即时生效');
+    else setFontStatus('bad', '⚠️ 浏览器未检测到「' + fam + '」，可能是链接跨域失败或字体名写错（导出会回退默认字体）');
+    scheduleRender(60);
+  });
+}
+function setFontStatus(cls, msg){
+  var el = $('fontStatus'); el.className = 'status ' + cls; el.textContent = msg;
+}
+
+/* ================= 渲染调度 ================= */
+var rtok = 0, renderTimer = null;
+function scheduleRender(delay){
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(async function(){
+    var tk = ++rtok;
+    await ensureFont();
+    if(tk !== rtok) return;
+    curLayout = buildLayout(getMeasCtx());
+    drawPreview(curLayout);
+    updateStats(curLayout);
+  }, delay === undefined ? 220 : delay);
+}
+var measCanvas = null;
+function getMeasCtx(){
+  if(!measCanvas) measCanvas = document.createElement('canvas');
+  return measCanvas.getContext('2d');
+}
+
+function updateStats(L){
+  var slices = computeSlices(L);
+  curSlices = slices;
+  $('hdrStats').textContent = st.body.length + ' 字 · 约 ' + slices.length + ' 张';
+  $('bodyCount').textContent = st.body.length + ' 字';
+  var maxH = 0, minH = 1e9;
+  slices.forEach(function(s){ if(s.h > maxH) maxH = s.h; if(s.h < minH) minH = s.h; });
+  var px = L.width * maxH;
+  var warn = '';
+  if(px > 30e6) warn = '<span class="d">⚠️ 单张像素 ' + (px/1e6).toFixed(1) + 'M，已大幅超出手机安全线，导出极可能失败，请调小。</span><br>';
+  else if(px > 16.7e6) warn = '<span class="w">⚠️ 单张像素 ' + (px/1e6).toFixed(1) + 'M，超出 iPhone 常见安全线（约 16M），失败请调小。</span><br>';
+  $('expStats').innerHTML = warn +
+    '本次将生成 <b>' + slices.length + '</b> 张 ' + st.format.toUpperCase() +
+    ' · 每张约 ' + L.width + ' × ' + (minH === maxH ? maxH : (minH + '~' + maxH)) + ' px<br>' +
+    '总排版高度 ' + Math.round(L.height).toLocaleString() + ' px · 单张最大 ' + (px/1e6).toFixed(1) + 'M 像素';
+  $('btnSaveAll').disabled = busy || slices.length === 0;
+  $('btnShareAll').disabled = busy || slices.length === 0;
+  renderSliceList(slices, L);
+}
+function renderSliceList(slices, L){
+  var box = $('sliceList');
+  if(!slices.length || (slices.length === 1 && slices[0].lines.length === 0 && !slices[0].withTitle)){
+    box.innerHTML = ''; return;
+  }
+  var show = Math.min(slices.length, 40), html = '';
+  for(var i=0;i<show;i++){
+    html += '<div class="slice-item"><span class="idx">第 ' + (i+1) + ' 张</span>' +
+            '<span class="dim">' + L.width + ' × ' + slices[i].h + '</span>' +
+            '<button data-i="' + i + '" data-m="dl">保存</button>' +
+            '<button data-i="' + i + '" data-m="sh">分享</button></div>';
+  }
+  if(slices.length > show) html += '<div class="note">共 ' + slices.length + ' 张，其余请用「全部保存」。</div>';
+  box.innerHTML = html;
+}
+$('sliceList').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if(!b || busy) return;
+  exportOne(parseInt(b.dataset.i, 10), b.dataset.m);
+});
+
+/* ================= 导出 ================= */
+function baseName(){
+  var n = (st.title || st.masthead || '文字长图').replace(/[\\/:*?"<>|]/g,'').trim();
+  return (n || '文字长图').slice(0, 24);
+}
+function extOf(){ return st.format === 'jpg' ? '.jpg' : '.png'; }
+function mimeOf(){ return st.format === 'jpg' ? 'image/jpeg' : 'image/png'; }
+function canvasToBlob(canvas){
+  return new Promise(function(res, rej){
+    canvas.toBlob(function(b){ b ? res(b) : rej(new Error('toBlob 失败（图片过大或内存不足）')); }, mimeOf(), 0.92);
+  });
+}
+function downloadBlob(blob, name){
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+}
+function canShareFiles(){
+  try{ return !!navigator.canShare && navigator.canShare({files:[new File([new Blob(['x'])], 't.png', {type:'image/png'})]}); }
+  catch(e){ return false; }
+}
+function ovShow(t){ $('overlay').classList.add('show'); $('ovText').textContent = t; }
+function ovBar(p){ $('ovBar').style.width = Math.round(p*100) + '%'; }
+function ovHide(){ $('overlay').classList.remove('show'); }
+async function buildSliceBlob(L, slice, total){
+  var c = drawSliceCanvas(L, slice, total);
+  var blob = await canvasToBlob(c);
+  c.width = 0; c.height = 0;
+  return blob;
+}
+function fileName(i){ return baseName() + '-' + String(i).padStart(2, '0') + extOf(); }
+
+async function exportOne(index, mode){
+  if(busy || !curLayout) return;
+  busy = true; updateStats(curLayout);
+  try{
+    var total = curSlices.length;
+    if(index < 0 || index >= total) throw new Error('没有这一张');
+    ovShow('正在生成第 ' + (index+1) + ' / ' + total + ' 张…'); ovBar(0.3);
+    var blob = await buildSliceBlob(curLayout, curSlices[index], total);
+    ovBar(1);
+    var name = fileName(index+1);
+    if(mode === 'sh' && canShareFiles()){
+      var file = new File([blob], name, {type:mimeOf()});
+      if(navigator.canShare({files:[file]})) await navigator.share({files:[file], title:st.title || '文字长图'});
+      else { downloadBlob(blob, name); toast('当前环境不支持分享，已直接下载'); }
+    }else downloadBlob(blob, name);
+  }catch(err){
+    if(!(err && err.name === 'AbortError')) toast('失败：' + (err.message || err));
+  }finally{ busy = false; ovHide(); updateStats(curLayout); }
+}
+$('btnSaveAll').addEventListener('click', async function(){
+  if(busy || !curLayout) return;
+  busy = true; updateStats(curLayout);
+  var slices = curSlices, L = curLayout, total = slices.length;
+  ovShow('正在生成 1 / ' + total + ' 张…'); ovBar(0);
+  try{
+    for(var i=0;i<total;i++){
+      $('ovText').textContent = '正在生成 ' + (i+1) + ' / ' + total + ' 张…'; ovBar(i/total);
+      var blob = await buildSliceBlob(L, slices[i], total);
+      ovBar((i+1)/total);
+      downloadBlob(blob, fileName(i+1));
+      await sleep(total > 3 ? 420 : 200);
+    }
+    toast('已全部保存，共 ' + total + ' 张');
+  }catch(err){ toast('失败：' + (err.message || err)); }
+  finally{ busy = false; ovHide(); updateStats(curLayout); }
+});
+$('btnShareAll').addEventListener('click', async function(){
+  if(busy || !curLayout) return;
+  if(!canShareFiles()){ toast('当前浏览器不支持文件分享，请用「全部保存」'); return; }
+  busy = true; updateStats(curLayout);
+  var slices = curSlices, L = curLayout, total = slices.length;
+  ovShow('正在生成 1 / ' + total + ' 张…'); ovBar(0);
+  try{
+    var CH = 10;
+    for(var g=0; g<total; g+=CH){
+      var files = [], end = Math.min(g+CH, total);
+      for(var k=g;k<end;k++){
+        $('ovText').textContent = '正在生成 ' + (k+1) + ' / ' + total + ' 张…'; ovBar(k/total);
+        var b = await buildSliceBlob(L, slices[k], total);
+        files.push(new File([b], fileName(k+1), {type:mimeOf()}));
+      }
+      ovHide(); busy = false;
+      var title = (st.title || '文字长图') + (total > CH ? '（' + (g/CH+1) + '/' + Math.ceil(total/CH) + '）' : '');
+      try{ await navigator.share({files:files, title:title}); }
+      catch(e){ if(e.name !== 'AbortError') throw e; }
+      if(end >= total) return;
+      await sleep(300); busy = true; ovShow('继续生成下一批…');
+    }
+  }catch(err){ if(!(err && err.name === 'AbortError')) toast('失败：' + (err.message || err)); }
+  finally{ busy = false; ovHide(); updateStats(curLayout); }
+});
+
+/* ================= UI ================= */
+(function buildPresetChips(){
+  var box = $('presetChips');
+  Object.keys(PRESETS).forEach(function(id){
+    var b = document.createElement('button');
+    b.textContent = PRESETS[id].name; b.dataset.id = id;
+    b.addEventListener('click', function(){
+      applyPresetTo(st, id);
+      syncUI(); scheduleRender(60); saveSoon();
+      toast('已套用「' + PRESETS[id].name + '」版式');
+    });
+    box.appendChild(b);
+  });
+})();
+(function buildSwatches(){
+  var box = $('swatches');
+  TEMPLATES.forEach(function(t){
+    var b = document.createElement('button');
+    b.className = 'sw'; b.dataset.id = t.id;
+    b.innerHTML = '<div class="circ" style="background:' + t.bg + ';color:' + t.text + '">A</div><div class="nm">' + t.name + '</div>';
+    b.addEventListener('click', function(){
+      st.tpl = t.id; st.c = {bg:t.bg, text:t.text, title:t.title};
+      syncColorInputs(); markSwatch(); scheduleRender(60); saveSoon();
+    });
+    box.appendChild(b);
+  });
+})();
+function markSwatch(){
+  Array.prototype.forEach.call($('swatches').children, function(el){
+    el.classList.toggle('on', el.dataset.id === st.tpl);
+  });
+  var t = TEMPLATES.filter(function(x){ return x.id === st.tpl; })[0];
+  $('tplName').textContent = t ? t.name : '自定义';
+}
+function markPresetChips(){
+  Array.prototype.forEach.call($('presetChips').children, function(el){
+    el.classList.toggle('on', el.dataset.id === st.preset);
+  });
+  $('presetName').textContent = PRESETS[st.preset] ? PRESETS[st.preset].name : '自定义';
+}
+function syncColorInputs(){ $('cBg').value = st.c.bg; $('cText').value = st.c.text; $('cTitle').value = st.c.title; }
+[['cBg','bg'],['cText','text'],['cTitle','title']].forEach(function(p){
+  $(p[0]).addEventListener('input', function(){
+    st.c[p[1]] = this.value; st.tpl = 'custom';
+    markSwatch(); scheduleRender(60); saveSoon();
+  });
+});
+(function buildFontChips(){
+  var box = $('fontChips');
+  Object.keys(FONT_DEFS).forEach(function(id){
+    if(id === 'custom') return;
+    var f = FONT_DEFS[id];
+    var b = document.createElement('button');
+    b.textContent = f.label + (f.web ? ' ⤓' : ''); b.dataset.id = id;
+    b.addEventListener('click', async function(){
+      if(st.font === id) return;
+      st.font = id; markFontChips(); saveSoon();
+      if(f.web){
+        b.classList.add('loading'); b.textContent = '加载中…';
+        $('fontNote').textContent = '正在下载网络字体（首次几秒，之后有缓存）…';
+        await ensureFont();
+        b.classList.remove('loading'); b.textContent = f.label + ' ⤓';
+        $('fontNote').textContent = '霞鹜文楷为在线字体，加载失败会自动回退系统楷体。';
+      }
+      scheduleRender(60);
+    });
+    box.appendChild(b);
+  });
+})();
+function ensureCustomChip(){
+  if(!FONT_DEFS.custom) return;
+  var box = $('fontChips');
+  if(box.querySelector('[data-id=custom]')) return;
+  var b = document.createElement('button');
+  b.dataset.id = 'custom';
+  b.addEventListener('click', function(){
+    st.font = 'custom'; markFontChips(); scheduleRender(60); saveSoon();
+    $('foldFont').classList.add('open');
+  });
+  box.appendChild(b);
+}
+function markFontChips(){
+  ensureCustomChip();
+  Array.prototype.forEach.call($('fontChips').children, function(el){
+    if(el.dataset.id === 'custom'){
+      el.textContent = '自定义' + (st.customFam ? '：' + st.customFam : '');
+    }
+    el.classList.toggle('on', el.dataset.id === st.font);
+  });
+}
+$('foldFont').querySelector('.fold-h').addEventListener('click', function(){
+  $('foldFont').classList.toggle('open');
+});
+
+var CSS_SAMPLE = '@font-face {\n  font-family: "我的字体";\n  src: url("https://cdn.jsdelivr.net/gh/用户名/仓库@main/字体.woff2") format("woff2");\n}\n/* 也可以直接写字体名，如：PingFang SC */';
+$('btnCssSample').addEventListener('click', function(){ $('inCss').value = CSS_SAMPLE; });
+$('btnCssApply').addEventListener('click', function(){
+  st.customCss = $('inCss').value;
+  applyCustomCss(st.customCss); saveSoon();
+});
+$('btnCssClear').addEventListener('click', function(){
+  $('inCss').value = ''; st.customCss = ''; st.customFam = '';
+  applyCustomCss(''); saveSoon();
+});
+$('btnUpload').addEventListener('click', function(){ $('fileFont').click(); });
+$('fileFont').addEventListener('change', async function(){
+  var f = this.files && this.files[0];
+  if(!f) return;
+  var nm = ($('inUpName').value || f.name.replace(/\.(ttf|otf|woff2?)$/i, '')).trim() || '我的字体';
+  setFontStatus('info', '正在加载 ' + f.name + ' …');
+  try{
+    var buf = await f.arrayBuffer();
+    var face = new FontFace(nm, buf);
+    await face.load();
+    document.fonts.add(face);
+    FONT_DEFS.custom = {label:'自定义', stack:'"' + nm + '"', family:nm, custom:true, uploaded:true};
+    st.customFam = nm; st.font = 'custom';
+    st.customCss = '/* 由上传文件 ' + f.name + ' 注册：' + nm + ' */';
+    $('inCss').value = st.customCss;
+    markFontChips(); scheduleRender(60); saveSoon();
+    setFontStatus('ok', '✅ 已加载「' + nm + '」。注意：上传的字体存在内存里，刷新后需要重新上传（想永久用请把文件放到 CDN 并用 CSS 方式）。');
+  }catch(e){
+    setFontStatus('bad', '❌ 加载失败：' + (e.message || e) + '（文件可能损坏或格式不支持）');
+  }
+});
+
+var RANGE_FMT = {
+  titleSize:function(v){ return v + ' px'; },
+  bodySize:function(v){ return v + ' px'; },
+  lineHeight:function(v){ return Number(v).toFixed(2); },
+  paraGap:function(v){ return Number(v).toFixed(2) + ' 倍'; },
+  margin:function(v){ return v + ' px'; },
+  ls:function(v){ return v + ' px'; },
+  sliceHeight:function(v){ return Number(v).toLocaleString() + ' px'; }
+};
+var RANGE_LAB = {titleSize:'vTitleSize', bodySize:'vBodySize', lineHeight:'vLineHeight',
+                 paraGap:'vParaGap', margin:'vMargin', ls:'vLs', sliceHeight:'vSliceHeight'};
+Object.keys(RANGE_FMT).forEach(function(key){
+  var input = document.querySelector('input[type=range][data-key=' + key + ']');
+  if(!input) return;
+  function show(){ $(RANGE_LAB[key]).textContent = RANGE_FMT[key](input.value); }
+  show();
+  input.addEventListener('input', function(){
+    st[key] = parseFloat(input.value); show(); scheduleRender(key === 'sliceHeight' ? 140 : 90); saveSoon();
+  });
+});
+Array.prototype.forEach.call(document.querySelectorAll('.seg'), function(seg){
+  var key = seg.dataset.key;
+  Array.prototype.forEach.call(seg.querySelectorAll('button'), function(b){
+    b.addEventListener('click', function(){
+      var v = b.dataset.v;
+      st[key] = (key === 'width' || key === 'sliceHeight') ? parseInt(v, 10) : v;
+      if(key === 'sliceMode') syncModeRows();
+      Array.prototype.forEach.call(seg.querySelectorAll('button'), function(x){ x.classList.remove('on'); });
+      b.classList.add('on');
+      scheduleRender(60); saveSoon();
+    });
+  });
+});
+function syncSeg(key){
+  Array.prototype.forEach.call(document.querySelectorAll('.seg[data-key=' + key + '] button'), function(b){
+    b.classList.toggle('on', String(st[key]) === b.dataset.v);
+  });
+}
+function syncModeRows(){
+  $('rowHeight').style.display = st.sliceMode === 'height' ? 'block' : 'none';
+  $('rowChars').style.display  = st.sliceMode === 'chars'  ? 'block' : 'none';
+  $('rowCount').style.display  = st.sliceMode === 'count'  ? 'block' : 'none';
+  $('sliceModeTip').textContent = st.sliceMode === 'height' ? '拉长每张 → 张数变少' :
+                                 (st.sliceMode === 'chars' ? '按整段切字' : '平均分成 N 张');
+}
+$('inSliceChars').addEventListener('input', function(){
+  st.sliceChars = Math.max(50, parseInt(this.value, 10) || 1200); scheduleRender(200); saveSoon();
+});
+$('inSliceCount').addEventListener('input', function(){
+  st.sliceCount = Math.max(1, parseInt(this.value, 10) || 3); scheduleRender(200); saveSoon();
+});
+[['selRule','rule'],['selOrn','orn'],['selDrop','dropCap'],['selFooter','footer']].forEach(function(p){
+  $(p[0]).addEventListener('change', function(){
+    st[p[1]] = (p[1] === 'dropCap') ? parseInt(this.value, 10) : this.value;
+    scheduleRender(60); saveSoon();
+  });
+});
+$('ckRepeat').checked = st.repeatTitle;
+$('ckRepeat').addEventListener('change', function(){ st.repeatTitle = this.checked; scheduleRender(60); saveSoon(); });
+
+['inMast','inTitle','inBody','inSign'].forEach(function(id){
+  $(id).addEventListener('input', function(){
+    st[{inMast:'masthead', inTitle:'title', inBody:'body', inSign:'sign'}[id]] = this.value;
+    scheduleRender(); saveSoon();
+  });
+});
+$('btnExample').addEventListener('click', function(){
+  $('inMast').value = 'THE ESSAY · 2026';
+  $('inTitle').value = '撒娇考';
+  $('inBody').value = '那天下午没什么事。\n\n说"没什么事"其实也不太对——沈容膝盖上摊着一份委员会的会议纪要，纸质版，他习惯在重要段落旁边用铅笔画竖线，偶尔写两个字的批注。零落躺在沙发另一头，脚搁在他大腿上，一只棉袜是灰色的，另一只是深蓝色。手机举在脸上方，正在看一只柴犬被主人骗去洗澡、在浴室里四脚刨地企图逃跑的视频。\n\n音量开得不大，但柴犬哀怨的嚎叫还是从手机里溢出来，断断续续地和窗外的鸟鸣搅在一起。\n\n沈容翻了一页纸，没抬头。\n\n零落笑了一声，很轻。她把手机屏幕转过去冲着沈容的方向晃了晃："你看这个。"\n\n"嗯？"\n\n他应了一声，笔尖在纸页边缘顿了顿，画下一道竖线。\n\n"这有什么好笑的。"\n\n"柴犬。"';
+  $('inSign').value = '';
+  st.masthead = $('inMast').value; st.title = $('inTitle').value; st.body = $('inBody').value; st.sign = '';
+  scheduleRender(60); saveSoon(); toast('示例已填入');
+});
+$('btnPaste').addEventListener('click', async function(){
+  try{
+    var txt = await navigator.clipboard.readText();
+    if(!txt){ toast('剪贴板是空的'); return; }
+    $('inBody').value = txt; st.body = txt; scheduleRender(60); saveSoon();
+    toast('已粘贴 ' + txt.length + ' 字');
+  }catch(e){ toast('读取剪贴板被拒绝，请长按正文框手动粘贴'); }
+});
+$('btnClear').addEventListener('click', function(){
+  if(!st.title && !st.body && !st.sign && !st.masthead){ toast('本来就是空的'); return; }
+  if(!confirm('确定清空刊头、标题、正文和落款？')) return;
+  st.title = ''; st.body = ''; st.sign = ''; st.masthead = '';
+  $('inMast').value = ''; $('inTitle').value = ''; $('inBody').value = ''; $('inSign').value = '';
+  scheduleRender(60); saveSoon();
+});
+Array.prototype.forEach.call($('tabs').querySelectorAll('button'), function(b){
+  b.addEventListener('click', function(){
+    Array.prototype.forEach.call($('tabs').querySelectorAll('button'), function(x){ x.classList.remove('on'); });
+    b.classList.add('on');
+    Array.prototype.forEach.call(document.querySelectorAll('.panel'), function(p){ p.classList.remove('on'); });
+    $('panel-' + b.dataset.p).classList.add('on');
+  });
+});
+
+function syncUI(){
+  /* 滑块 */
+  Object.keys(RANGE_FMT).forEach(function(key){
+    var input = document.querySelector('input[type=range][data-key=' + key + ']');
+    if(input){ input.value = st[key]; $(RANGE_LAB[key]).textContent = RANGE_FMT[key](input.value); }
+  });
+  ['align','indent','width','format','sliceMode'].forEach(syncSeg);
+  ['selRule','selOrn','selDrop','selFooter'].forEach(function(id){
+    $(id).value = st[{selRule:'rule', selOrn:'orn', selDrop:'dropCap', selFooter:'footer'}[id]];
+  });
+  $('ckRepeat').checked = st.repeatTitle;
+  $('inSliceChars').value = st.sliceChars;
+  $('inSliceCount').value = st.sliceCount;
+  $('inMast').value = st.masthead; $('inTitle').value = st.title;
+  $('inBody').value = st.body; $('inSign').value = st.sign;
+  $('inCss').value = st.customCss || '';
+  syncColorInputs(); markSwatch(); markPresetChips(); markFontChips(); syncModeRows();
+}
+
+/* 初始化 */
+syncUI();
+if(st.customCss) applyCustomCss(st.customCss);
+if(canShareFiles()) $('btnShareAll').style.display = 'block';
+scheduleRender(50);
+</script>
+</body>
+</html>
