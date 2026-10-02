@@ -66,7 +66,12 @@ textarea{min-height:120px;} textarea#inBody{min-height:200px;} textarea#inCss{mi
 .mini-btns{display:flex; gap:8px; margin-top:8px;}
 .mini-btns button{flex:1; background:var(--panel2); border:1px solid var(--line); color:var(--tx2); border-radius:9px; padding:8px 0; font-size:12.5px; cursor:pointer;}
 .mini-btns button:active{border-color:var(--acc); color:var(--acc);}
-input[type=range]{width:100%; appearance:none; -webkit-appearance:none; height:26px; background:none; margin:0;}
+/* 滑块防误触：pan-y = 纵向滑动归页面滚动，横向才归滑块
+   （iOS Safari 13+ / Chrome 均支持；不支持的老浏览器由 JS 方向锁兜底） */
+input[type=range]{
+  width:100%; appearance:none; -webkit-appearance:none; height:34px; background:none; margin:0;
+  touch-action:pan-y; -webkit-user-select:none; user-select:none;
+}
 input[type=range]::-webkit-slider-runnable-track{height:4px; border-radius:2px; background:var(--panel2); border:1px solid var(--line);}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:22px; height:22px; border-radius:50%; background:var(--acc); margin-top:-10px; border:3px solid var(--bg); box-shadow:0 0 0 1px var(--acc);}
 .seg{display:flex; gap:6px; flex-wrap:wrap;}
@@ -1303,11 +1308,27 @@ function canvasToBlob(canvas){
     canvas.toBlob(function(b){ b ? res(b) : rej(new Error('toBlob 失败（图片过大或内存不足）')); }, mimeOf(), 0.92);
   });
 }
+/* 下载去重：同一个 blob 对象只派发一次。
+   移动端浏览器（尤其 iOS Safari / 部分安卓 WebView）在 blob 下载上会重复派发 ——
+   表现就是「每张存了两遍、出现两套一样的图」。
+   这里用 blob 对象本身做键：浏览器对同一次下载的重复派发复用同一个 blob，
+   而你主动再点一次保存会生成新 blob，不会被误拦。 */
+var dlSeen = new WeakSet(), dlAnchor = null;
 function downloadBlob(blob, name){
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = name;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+  if(dlSeen.has(blob)) return false;
+  dlSeen.add(blob);
+  /* 复用同一个 anchor：反复新建 + 同步 remove 会让部分浏览器把一次点击记成两次 */
+  if(!dlAnchor){
+    dlAnchor = document.createElement('a');
+    dlAnchor.style.display = 'none';
+    document.body.appendChild(dlAnchor);
+  }
+  var url = URL.createObjectURL(blob);
+  dlAnchor.href = url; dlAnchor.download = name; dlAnchor.rel = 'noopener';
+  dlAnchor.click();
+  /* revoke 必须延后：手机下载要等用户确认，URL 提前失效会让浏览器重新拉取 → 出两份 */
+  setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(e){} }, 30000);
+  return true;
 }
 function canShareFiles(){
   try{ return !!navigator.canShare && navigator.canShare({files:[new File([new Blob(['x'])], 't.png', {type:'image/png'})]}); }
@@ -1350,14 +1371,17 @@ $('btnSaveAll').addEventListener('click', async function(){
   var slices = curSlices, L = curLayout, total = slices.length;
   ovShow('正在生成 1 / ' + total + ' 张…'); ovBar(0);
   try{
+    var saved = 0, dup = 0;
     for(var i=0;i<total;i++){
       $('ovText').textContent = '正在生成 ' + (i+1) + ' / ' + total + ' 张…'; ovBar(i/total);
       var blob = await buildSliceBlob(L, slices[i], total);
       ovBar((i+1)/total);
-      downloadBlob(blob, fileName(i+1));
-      await sleep(total > 3 ? 420 : 200);
+      if(downloadBlob(blob, fileName(i+1))) saved++; else dup++;
+      await sleep(total > 3 ? 520 : 260);
     }
-    toast('已全部保存，共 ' + total + ' 张');
+    toast(dup > 0
+      ? '已保存 ' + saved + ' 张（拦下 ' + dup + ' 次重复下载）'
+      : '已全部保存，共 ' + saved + ' 张');
   }catch(err){ toast('失败：' + (err.message || err)); }
   finally{ busy = false; ovHide(); updateStats(curLayout); }
 });
@@ -1526,14 +1550,81 @@ var RANGE_FMT = {
 var RANGE_LAB = {titleSize:'vTitleSize', bodySize:'vBodySize', lineHeight:'vLineHeight',
                  paraGap:'vParaGap', margin:'vMargin', ls:'vLs', sliceHeight:'vSliceHeight',
                  sideSize:'vSideSize', bgAlpha:'vBgAlpha', bgShade:'vBgShade'};
+/* 移动端滑块防误触（配合 CSS touch-action:pan-y 使用的 JS 兜底）
+   手机上想在面板里上下滚动，手指却落在滑块上时，浏览器会立刻把值跳到手指处 ——
+   于是「滚一下版面就变了」。这里用方向锁把这种情况挡掉：
+     · pointerdown 落在滑道上：先按回原值，只把浏览器算出的值记作「候选值」
+     · 手指偏纵向移动 → 判定为在滚页面，整段拖动全部丢弃，滑块弹回原位
+     · 手指偏横向移动 → 认定为调值，采纳候选值并跟随
+     · 抬手前没怎么移动 → 认定为轻点，采纳候选值（点滑道跳值这个功能保留）
+   鼠标（桌面）完全走原逻辑，不受影响。 */
+function bindRangeGuarded(input, key, show){
+  var isMouse = true, mode = 'idle', sx = 0, sy = 0, startVal = 0, cand = null, rect = null;
+  function apply(){
+    st[key] = parseFloat(input.value);
+    show();
+    scheduleRender(key === 'sliceHeight' ? 140 : 90);
+    saveSoon();
+  }
+  /* 横向位移 → 目标值：滑道像素映射 + step 对齐。
+     不依赖浏览器是否已把值写进 input.value，这样横向拖动在任何环境下都跟手。 */
+  function valueFromX(x){
+    if(!rect) rect = input.getBoundingClientRect();
+    var min = parseFloat(input.min), max = parseFloat(input.max), step = parseFloat(input.step) || 1;
+    var ratio = (x - rect.left) / (rect.width || 1);
+    ratio = Math.max(0, Math.min(1, ratio));
+    var v = min + (max - min) * ratio;
+    v = Math.round(v / step) * step;
+    /* 修正浮点误差，避免出现 39.999999 */
+    var dec = (String(step).split('.')[1] || '').length;
+    v = parseFloat(v.toFixed(dec));
+    return Math.max(min, Math.min(max, v));
+  }
+  input.addEventListener('pointerdown', function(e){
+    isMouse = (e.pointerType === 'mouse');
+    if(isMouse) return;
+    mode = 'pending'; sx = e.clientX; sy = e.clientY;
+    startVal = input.value; cand = null; rect = null;
+  });
+  input.addEventListener('input', function(){
+    if(isMouse){ apply(); return; }
+    if(mode === 'pending'){ cand = input.value; input.value = startVal; return; }  /* 吃掉 touchstart 的跳变 */
+    if(mode === 'drag'){ apply(); return; }
+    input.value = startVal;                                                       /* 滚动中：一律还原 */
+  });
+  input.addEventListener('pointermove', function(e){
+    if(isMouse || mode !== 'pending') return;
+    var dx = Math.abs(e.clientX - sx), dy = Math.abs(e.clientY - sy);
+    if(dx < 6 && dy < 6) return;                 /* 还在手指抖动范围内，不下结论 */
+    if(dy > dx){
+      mode = 'scroll'; input.value = startVal;     /* 纵向意图 = 你想滚页面，不是想调数值 */
+    }else{
+      /* 横向意图 = 调值。优先用浏览器给的落点，没有就按位移自己算 */
+      mode = 'drag';
+      if(cand !== null && cand !== input.value) input.value = cand;
+      else input.value = String(valueFromX(e.clientX));
+      apply();
+    }
+  });
+  function finish(){
+    if(isMouse) return;
+    if(mode === 'pending' && cand !== null && cand !== startVal){
+      input.value = cand; apply();                 /* 轻点滑道 = 跳到该位置，功能保留 */
+    }
+    mode = 'idle'; cand = null;
+  }
+  input.addEventListener('pointerup', finish);
+  input.addEventListener('pointercancel', function(){
+    if(isMouse) return;
+    mode = 'idle'; cand = null; input.value = startVal;   /* 浏览器接管滚动，撤销 */
+  });
+}
 Object.keys(RANGE_FMT).forEach(function(key){
   var input = document.querySelector('input[type=range][data-key=' + key + ']');
   if(!input) return;
   function show(){ $(RANGE_LAB[key]).textContent = RANGE_FMT[key](input.value); }
   show();
-  input.addEventListener('input', function(){
-    st[key] = parseFloat(input.value); show(); scheduleRender(key === 'sliceHeight' ? 140 : 90); saveSoon();
-  });
+  bindRangeGuarded(input, key, show);
 });
 Array.prototype.forEach.call(document.querySelectorAll('.seg'), function(seg){
   var key = seg.dataset.key;
