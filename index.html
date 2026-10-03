@@ -284,6 +284,10 @@ input[type=password]:focus{border-color:var(--acc);}
         </div>
         <div class="switch-row"><span>用我上传的图做配图</span><input type="checkbox" id="ckAiImg" checked></div>
         <div class="note" id="aiImgHint">已上传 0 张底图</div>
+        <div class="switch-row" style="padding-top:4px">
+          <span>AI 没给装帧时自动补一套<br><span style="font-size:11px;opacity:.75">避免整页纯文字、看着像 Word</span></span>
+          <input type="checkbox" id="ckAutoDeco" checked>
+        </div>
         <div class="mini-btns">
           <button id="btnAiRun">✨ AI 排版</button>
           <button id="btnAiRetry">🎲 换个排式</button>
@@ -1408,20 +1412,52 @@ function drawLine(ctx, ln, dy, W, m, avail){
     return;
   }
   if(ln.type === 'img'){
-    /* AI 分配的插图：图片可能尚未 onload（切图是异步流程），
-       载入完成后会由 aiImgWait() 触发重绘，未就绪时先留白占位避免高度塌陷 */
+    /* AI 分配的插图。做「杂志插图」式处理，而不是直接贴一张矩形：
+       圆角裁切 + 极淡描边 + 轻微内缩，让深色图贴在浅底上也不显得生硬
+       （实测踩过：深色星空图直接铺满文字宽度，看起来像误贴的截图）。 */
     var im = aiImgCache[ln.src];
+    var r = Math.round(Math.min(ln.w, ln.h) * 0.035);   /* 圆角半径随图幅 */
     ctx.save();
-    if(im && im.complete && im.naturalWidth){
-      ctx.drawImage(im, ln.x, dy, ln.w, ln.h);
+    /* 圆角路径 */
+    ctx.beginPath();
+    if(ctx.roundRect){
+      ctx.roundRect(ln.x, dy, ln.w, ln.h, r);
     }else{
-      ctx.globalAlpha = 0.06; ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(ln.x, dy, ln.w, ln.h);
-      ctx.globalAlpha = 0.5; ctx.strokeStyle = mutedColor();
-      ctx.lineWidth = Math.max(1, Math.round(1.2*st.width/1080));
-      ctx.strokeRect(ln.x + .5, dy + .5, ln.w - 1, ln.h - 1);
+      ctx.moveTo(ln.x + r, dy);
+      ctx.arcTo(ln.x + ln.w, dy, ln.x + ln.w, dy + ln.h, r);
+      ctx.arcTo(ln.x + ln.w, dy + ln.h, ln.x, dy + ln.h, r);
+      ctx.arcTo(ln.x, dy + ln.h, ln.x, dy, r);
+      ctx.arcTo(ln.x, dy, ln.x + ln.w, dy, r);
+      ctx.closePath();
     }
-    ctx.restore();
+    if(im && im.complete && im.naturalWidth){
+      ctx.clip();
+      ctx.drawImage(im, ln.x, dy, ln.w, ln.h);
+      ctx.restore();
+      /* 描边：用正文色压到极淡，外面再留一圈背景色的呼吸缝 */
+      ctx.save();
+      ctx.globalAlpha = 0.16;
+      ctx.strokeStyle = mutedColor();
+      ctx.lineWidth = Math.max(1, Math.round(ln.w / 600));
+      ctx.beginPath();
+      if(ctx.roundRect) ctx.roundRect(ln.x, dy, ln.w, ln.h, r);
+      else ctx.rect(ln.x, dy, ln.w, ln.h);
+      ctx.stroke();
+      ctx.restore();
+    }else{
+      /* 未就绪：留白占位，避免高度塌陷 */
+      ctx.globalAlpha = 0.06; ctx.fillStyle = '#FFFFFF';
+      ctx.fill();
+      ctx.restore();
+      ctx.save();
+      ctx.globalAlpha = 0.45; ctx.strokeStyle = mutedColor();
+      ctx.lineWidth = Math.max(1, Math.round(1.2*st.width/1080));
+      ctx.beginPath();
+      if(ctx.roundRect) ctx.roundRect(ln.x + .5, dy + .5, ln.w - 1, ln.h - 1, r);
+      else ctx.rect(ln.x + .5, dy + .5, ln.w - 1, ln.h - 1);
+      ctx.stroke();
+      ctx.restore();
+    }
     return;
   }
   drawRichLine(ctx, ln, dy);
@@ -2865,6 +2901,8 @@ var AI_PROMPT = [
 '  4. 原文可能很长（最多 2 万字）。请完整处理全部内容，一段都不要漏。',
 '     一次写不完就从最后一个空行处续写，直到全部内容处理完。',
 '  5. 层次划分要贴合内容真实的结构：把「话题真正转向」的地方当作分节，不要按字数硬切。',
+'  6. ⚠️ 正文最后必须输出【两段】注释，缺一不可：先 <!--FIT2:{...}-->，再 <!--DECO:{...}-->。',
+'     只输出 FIT2 不输出 DECO 是不合格的输出。',
 '',
 '【排版参数：正文输出完后，另起一行给一段 HTML 注释，内容是 JSON】',
 '  <!--FIT2:{"preset":"?","font":"?","titleSize":?,"bodySize":?,"lineHeight":?,"paraGap":?,"margin":?,"ls":?,"align":"?","indent":"?","rule":"?","orn":"?","dropCap":?,"footer":"?","bg":"?","text":"?","title":"?","side":?}-->',
@@ -3294,12 +3332,70 @@ var DECO_RANGES = {
   silhouetteCount:[1,5], grain:[0,100], guillocheAlpha:[2,30],
   watermarkAlpha:[4,40], watermarkScale:[12,60]
 };
+/* 只把「主要装饰」列为已配置项 —— 数量/浓度这类微调参数不上报，
+   否则状态栏会列成「剪影、剪影数量、水印、水印浓度、水印大小…」一长串噪音。 */
 var DECO_LABELS = {
-  silhouette:'剪影', silhouetteCount:'剪影数量', grain:'肌理',
-  guilloche:'暗纹', guillocheAlpha:'暗纹浓度', bar:'装饰条', divider:'分割条',
-  watermark:'水印', watermarkAlpha:'水印浓度', watermarkScale:'水印大小',
-  watermarkOutline:'水印描边', subTitleEn:'英文副标', subTitle:'副标', sideNote:'竖排注解'
+  silhouette:'剪影', grain:'肌理', guilloche:'暗纹', bar:'装饰条',
+  divider:'分割条', watermark:'水印',
+  subTitleEn:'英文副标', subTitle:'副标', sideNote:'竖排注解'
 };
+/* ---- 自动装帧兜底 ----
+   实测发现：AI 经常只返回 FIT2 不返回 DECO（尤其在长文里），
+   结果整页零装饰 —— 纯文字排在白底上，看着就「像 Word」。
+   这里按「标题 + 正文意象」自动补一套克制的装帧，保证有基本质感。
+   注意克制：宁可少而准，不要堆满（用户明确说不要朴素，但也不要花哨）。 */
+var SIL_HINTS = [
+  {re:/羊|羔|牧|咩|白羊/,      sil:'lamb'},
+  {re:/雪|冬|霜|寒|冰|凛/,     sil:'moon'},
+  {re:/鸟|飞|羽|翔|鹤|雁|燕/,  sil:'bird'},
+  {re:/花|春|樱|莲|荷|蕊|绽/,  sil:'flower'},
+  {re:/树|林|枝|叶|木|森|枯/,  sil:'tree'},
+  {re:/山|岭|峰|川|原|远行|路/,  sil:'mountain'},
+  {re:/夜|月|星|宵|烛|灯/,     sil:'moon'},
+  {re:/书|信|纸|页|卷|诗|稿/,  sil:'feather'},
+  {re:/窗|门|屋|宅|院|府|楼/,  sil:'window'},
+  {re:/光|希望|愿|盼|明/,      sil:'star'}
+];
+var GUILLOCHE_HINTS = [
+  {re:/水|海|江|河|湖|波|溺|流|雨/, kind:'wave'},
+  {re:/年|时|钟|久|岁月|轮回/,     kind:'arc'},
+  {re:/网|格|囚|牢|规|矩/,         kind:'grid'}
+];
+function autoDecoFromContent(){
+  var text = (st.title || '') + ' ' + (st.body || '').slice(0, 1200);
+  var sil = 'none', gui = 'none';
+  for(var i=0;i<SIL_HINTS.length;i++){
+    if(SIL_HINTS[i].re.test(text)){ sil = SIL_HINTS[i].sil; break; }
+  }
+  for(var j=0;j<GUILLOCHE_HINTS.length;j++){
+    if(GUILLOCHE_HINTS[j].re.test(text)){ gui = GUILLOCHE_HINTS[j].kind; break; }
+  }
+  /* 水印取标题里最有力的 1~2 字（去掉标点） */
+  var wm = '';
+  var t = (st.title || '').replace(/[^\u4e00-\u9fa5A-Za-z]/g, '');
+  if(t.length >= 2) wm = t.length <= 3 ? t : t.slice(-2);
+  /* 深底配浅字时颗粒感更明显，浅底要更轻 */
+  function lum(hex){
+    var h = String(hex||'#000').replace('#','');
+    if(h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+    var r2=parseInt(h.slice(0,2),16)||0, g2=parseInt(h.slice(2,4),16)||0, b2=parseInt(h.slice(4,6),16)||0;
+    return (0.299*r2 + 0.587*g2 + 0.114*b2) / 255;
+  }
+  var lightBg = lum(st.c.bg) > 0.55;
+  return {
+    silhouette: sil,
+    silhouetteCount: sil === 'none' ? 3 : 2,
+    grain: lightBg ? 22 : 30,
+    guilloche: gui,
+    guillocheAlpha: 8,
+    bar: 'none',
+    divider: 'ornament',
+    watermark: wm,
+    watermarkAlpha: lightBg ? 9 : 12,
+    watermarkScale: 36,
+    sideNote: ''
+  };
+}
 function aiApplyDeco(dc){
   if(!dc) return [];
   var clean = decoSanitize(dc);
@@ -3314,7 +3410,9 @@ function aiApplyDeco(dc){
       v = Math.max(r[0], Math.min(r[1], Math.round(v)));
     }
     st.deco[k] = v;
-    if(DECO_LABELS[k]) applied.push(DECO_LABELS[k]);
+    /* 值为「关闭」的不算「已配置」——否则状态栏会列出「装饰条」这类其实没开的东西 */
+    var isOff = (v === 'none' || v === '' || v === 0);
+    if(DECO_LABELS[k] && !isOff) applied.push(DECO_LABELS[k]);
   });
   /* 开了水印但没给文字 → 给个兜底，否则水印层是空的 */
   if(st.deco.watermarkAlpha && !st.deco.watermark){
@@ -4199,7 +4297,16 @@ async function aiRun(mode){
 
     var applied = aiApplyFit(r.fit);
     /* 装帧装饰：AI 给的 DECO。styleOnly 模式下不重排正文，但装饰照样能换。 */
+    /* 装帧装饰：优先用 AI 给的 DECO；
+       实测 AI 常漏返回 DECO（长文尤其），那就按内容意象自动补一套，
+       避免「整页零装饰、像 Word」的观感。用户可在装帧面板关掉。 */
     var decoApplied = aiApplyDeco(r.deco);
+    var decoAuto = false;
+    if(!decoApplied.length && $('ckAutoDeco').checked){
+      var autoDeco = autoDecoFromContent();
+      decoApplied = aiApplyDeco(autoDeco);
+      decoAuto = decoApplied.length > 0;
+    }
     syncUI(); scheduleRender(0); saveSoon();
 
     var sec = ((Date.now() - tStart) / 1000).toFixed(1);
@@ -4207,7 +4314,7 @@ async function aiRun(mode){
       ? '🎲 换了一套排式（' + sec + '秒）'
       : '✅ 排版完成（' + sec + '秒）';
     if(applied.length) msg += ' · ' + applied.join('、');
-    if(decoApplied.length) msg += ' · 🎨 装帧：' + decoApplied.join('、');
+    if(decoApplied.length) msg += ' · 🎨 装帧' + (decoAuto ? '(自动补的)' : '') + '：' + decoApplied.join('、');
     if(!styleOnly){
       var imgs = aiCountImg(st.body);
       if(useImg && imgs) msg += ' · 插入 ' + imgs + ' 张配图';
