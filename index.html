@@ -120,6 +120,8 @@ input[type=password]:focus{border-color:var(--acc);}
 @keyframes aiPulse{0%,100%{opacity:.35}50%{opacity:1}}
 #aiStatus.busy::before{content:'●'; color:var(--acc); margin-right:5px; animation:aiPulse 1s ease-in-out infinite;}
 #aiStatus.ok{color:var(--acc);} #aiStatus.bad{color:var(--danger);} #aiStatus.info{color:var(--tx2);}
+/* 排式速览是多行的，用 textContent 写入的 \n 需要 pre-line 才会显示为换行 */
+#aiStatus{white-space:pre-line; line-height:1.75;}
 .fold{border:1px dashed var(--line); border-radius:10px; padding:10px 12px; margin-top:12px;}
 .fold-h{display:flex; justify-content:space-between; align-items:center; font-size:13px; color:var(--tx); cursor:pointer; font-weight:600;}
 .fold-body{display:none; margin-top:10px;}
@@ -185,6 +187,7 @@ input[type=password]:focus{border-color:var(--acc);}
         <div class="note" id="aiImgHint">已上传 0 张底图</div>
         <div class="mini-btns">
           <button id="btnAiRun">✨ AI 排版</button>
+          <button id="btnAiRetry">🎲 换个排式</button>
           <button id="btnAiUndo">撤销</button>
         </div>
         <div class="status info" id="aiStatus">未运行</div>
@@ -1795,65 +1798,90 @@ function aiSetKey(k){
 }
 
 var AI_STYLE_DESC = {
-  auto:  '你自己判断：这是一篇什么文体、什么情绪、给谁看，再决定排版。跟随内容气质，不要一律用同一种样式。',
-  essay: '散文随笔：舒展、留白多、行距松。适合情感、随感、回忆类文字。',
-  note:  '金句卡片：把最有力的句子单独提成小标题或引用，短句错落，有节奏感。',
-  clean: '极简阅读：几乎不用装饰，层次只靠字号和空距拉开，安静克制。'
+  auto:
+'【排版方向】由你根据正文自己判断。这一轮请特别注意：\n' +
+'  · 先在心里给这段文字定位：它是什么文体、什么情绪、写给谁看。\n' +
+'  · 再据此决定一套「和内容气质吻合」的排版，而不是套用最常见的那一套。\n' +
+'  · 关键要求：字体、字号、配色这三项必须成组考虑，要能一眼看出是「为这段文字选的」，\n' +
+'    而不是任何文本都能套上的通用值。如果不确定，就往「和内容相反但有张力」的方向想，\n' +
+'    比中庸的稳妥选择更吸引人。',
+  essay:
+'【排版方向：散文随笔】舒展、留白多、气口长。字号别贪大，行距要松，段距明显，\n' +
+'  让文字像手写稿一样有呼吸。配色宜素雅，不要抢文字。装饰点到为止。',
+  note:
+'【排版方向：金句卡片】把最有力的句子单独提出来（用 > 或 ##），让它们在视觉上「跳出来」。\n' +
+'  短句为主、错落有致，正文可以偏小以突出金句。标题要压得住场面。',
+  clean:
+'【排版方向：极简阅读】几乎不用装饰：不要标题线、不要间隔符、不要页脚、不要变色。\n' +
+'  层次只靠字号和空距拉开，配色只用一个背景色 + 一个正文色。对齐与缩进保持一致。'
 };
 
-/* 让模型按这套标记语言输出。刻意写得很死，并用 few-shot 锁死行为。 */
+/* 排版提示词。
+   ⚠️ 重要教训（实测踩过）：**不要在提示词里写出具体的示例数值**。
+   早期版本给了一个完整的示例 JSON（titleSize:56/bodySize:38/lineHeight:2.0…），
+   结果模型每次都原样照抄那一组数字，用户连续生成几次得到完全一样的排版 —— 就是「套模板」。
+   现在只给「取值范围 + 判断依据」，不给「推荐值」，让模型必须自己根据内容做决定。 */
 var AI_PROMPT = [
-'你是一位中文长图排版专家。你的任务是把用户给的正文，重排成适合手机长图阅读的标记文本。',
+'你是一位中文长图排版专家。你的任务是把用户给的正文，重排成适合手机长图阅读的标记文本，并给出一套为这段文字量身定制的排版参数。',
 '',
-'【你只能使用下面这些标记，不要发明别的】',
-'  # 文字      → 大标题（用于全文主标题，或每个大章节的开头，一篇最多 2 个）',
-'  ## 文字     → 小标题（用于小节，3~5 个为宜）',
-'  > 文字      → 引用块（用于金句、感悟、需要强调的独白）',
-'  - 文字      → 列表项（用于并列的短句、要点、清单）',
-'  **文字**    → 加粗（用于关键论点、结论、情绪落点。每 300 字最多 1 处，不要滥用）',
-'  {{RRGGBB}}文字{{/}} → 变色（仅在确实需要强调时用，最多 1~2 处）',
+'【标记语言：只能用这些，不要发明别的】',
+'  # 文字      → 大标题（全文主标题，或每个大章节开头；一篇最多 2 个）',
+'  ## 文字     → 小标题（小节，3~5 个为宜）',
+'  ### 文字    → 更小的子标题（层级很多时才用）',
+'  > 文字      → 引用块（金句、感悟、需要强调的独白）',
+'  - 文字      → 列表项（并列的短句、要点）',
+'  **文字**    → 加粗（关键论点、结论、情绪落点。每 300 字最多 1 处，不要滥用）',
+'  {{RRGGBB}}文字{{/}} → 变色（确实需要强调时才用，最多 1~2 处）',
 '  空行        → 分段。不要用连续三个以上空行。',
-'  ⚠️ 每个标记（# / ## / > / -）必须独占一行，后面紧跟正文，中间不要粘连别的段落。',
+'  ⚠️ 每个标记（# / ## / ### / > / -）必须独占一行，标记后紧跟正文，中间不要粘连别段。',
 '',
-'【硬性要求】',
-'  1. 不要改动、不要删减、不要重写原句的措辞。只允许重新分段、加标记、调整顺序（若原文有明显笔误可修正）。',
-'  2. 不要输出解释、不要输出前言后语、不要用代码块包裹。只输出排版后的正文本身，',
-'     最后再输出那段 <!--FIT2:...--> JSON 注释。',
-'  3. 原文没有标题时，若第一句像标题（短、有力）可提为 # ，否则不要硬造标题。',
+'【排版硬性要求】',
+'  1. 不要改动、不要删减、不要重写原句的措辞。只允许重新分段、加标记（原文有明显笔误可修正）。',
+'  2. 不要输出任何解释、前言、后语，不要用代码块包裹。',
+'  3. 原文没有标题时，若首句像标题（短、有力）可提为 # ，否则不要硬造标题。',
 '  4. 原文可能很长（最多 2 万字）。请完整处理全部内容，一段都不要漏。',
-'     如果一次写不完，就从最后一个空行处续写下一段继续输出，直到全部内容处理完。',
+'     一次写不完就从最后一个空行处续写，直到全部内容处理完。',
+'  5. 层次划分要贴合内容真实的结构：把「话题真正转向」的地方当作分节，不要按字数硬切。',
 '',
-'【额外输出一段排式参数（JSON）】',
-'  正文全部输出完后，另起一行，输出一段 HTML 注释，内容是 JSON：',
-'  <!--FIT2:{"preset":"essay","font":"song","titleSize":56,"bodySize":38,"lineHeight":2.0,"paraGap":1.0,"margin":120,"ls":0,"align":"left","indent":"yes","rule":"under-short","orn":"diamond","dropCap":0,"footer":"rule","bg":"#1F3D3A","text":"#E5E0CE","title":"#E5E0CE","side":false}-->',
+'【排版参数：正文输出完后，另起一行给一段 HTML 注释，内容是 JSON】',
+'  <!--FIT2:{"preset":"?","font":"?","titleSize":?,"bodySize":?,"lineHeight":?,"paraGap":?,"margin":?,"ls":?,"align":"?","indent":"?","rule":"?","orn":"?","dropCap":?,"footer":"?","bg":"?","text":"?","title":"?","side":?}-->',
 '',
-'  字段说明（都可以按内容气质自由搭配，这是让排版「好看」的关键）：',
-'    preset(版式预设，会给出上面那些参数的默认值): plain | magazine | essay | dropcap | narrow | sidebar | mast | verse',
-'      —— 选了 preset 后，下面写的具体数值会覆盖 preset 的默认值，所以以你写的为准',
-'    font(正文字体): song 宋体 | hei 黑体 | kai 楷体 | fang 仿宋 | yuan 圆体',
-'    titleSize(标题字号 px): 34~84。标题想有气势就调大',
-'    bodySize(正文字号 px): 26~52。移动端阅读 30~38 最舒服',
-'    lineHeight(行距倍数): 1.5~2.6。文案密就调大，留白多就调小',
-'    paraGap(段距倍数): 0.4~1.8',
-'    margin(页边距 px): 60~200。窄栏排版可以调大',
-'    ls(字间距 px): 0~6。标题可加 2~4 显得疏朗',
-'    align(对齐): left | center',
-'    indent(首行缩进): yes | no',
-'    rule(标题线): none | under | top-bottom | under-short | double | leftbar',
-'    orn(段落间隔符): none | diamond | dot | line',
-'    dropCap(首字下沉行数): 0 | 2 | 3 | 4',
-'    footer(页脚): none | plain | rule | corner',
-'    bg(背景色): #RRGGBB',
-'    text(正文色): #RRGGBB',
-'    title(标题色): #RRGGBB',
-'    side(是否显示右侧竖排大字): true | false',
+'  下面是每个字段的取值范围与「该怎么选」。请根据这段文字的气质自己判断，不要填「安全的中庸值」。',
 '',
-'  ⚠️ 配色是重点：请根据文字的情绪选一套【有质感】的配色，不要用刺眼的纯色。',
-'     背景与正文色的明度差要大，保证手机上能看清。',
-'     例如：深色系（#1F3D3A 墨绿 / #2C3A52 雾蓝 / #101010 黑）+ 米白正文（#E5E0CE）；',
-'     浅色系（#F7F3EA 米白 / #EEF2E7 浅竹 / #E9DCC3 牛皮）+ 深褐正文（#4A3A26）。',
+'  · preset(版式预设，作为其余字段的起点): plain 素排 | magazine 杂志 | essay 散文 | dropcap 首字下沉 | narrow 窄栏 | sidebar 侧栏竖线 | mast 文艺刊头 | verse 诗集',
+'      —— 它只是起点，你下面写的具体数值会覆盖它，所以以你写的为准。',
 '',
-'  只输出这一段 JSON 注释，不要有其他解释。字段可以只写你要改的，其余会取 preset 默认值。',
+'  · font(正文字体) —— 这是最容易体现「为内容定制」的一项，请认真选:',
+'      song 宋体：端正、传统、有书卷气，适合文言、庄重、怀旧',
+'      hei  黑体：现代、锐利、干净利落，适合都市、理性、简短有力',
+'      kai  楷体：手写感、亲密、柔软，适合私密日记、给某个人看的话',
+'      fang 仿宋：公文感、克制、朴素，适合叙事、记录',
+'      yuan 圆体：温柔、圆融、可爱，适合治愈、童稚、温柔口吻',
+'',
+'  · titleSize(标题字号 px) 28~90：标题要压得住，但别大到挤。字数少的标题可以更大。',
+'  · bodySize(正文字号 px) 26~52：手机阅读 30~38 最舒服；内容沉重可略小，轻松叙述可略大。',
+'  · lineHeight(行距倍数) 1.5~2.6：情绪压抑、句子长 → 调大；短句、活泼 → 调小。',
+'  · paraGap(段距倍数) 0.4~1.8：段落是独立单元就调大，段落是连续思绪就调小。',
+'  · margin(页边距 px) 60~200：想要疏朗大气就调大（140+），想要紧凑就调小。',
+'  · ls(字间距 px) 0~6：标题加 2~4 会显得疏朗精致；正文一般 0~1。',
+'  · align(对齐): left | center。center 适合诗意、题词、名字类；left 适合长文阅读。',
+'  · indent(首行缩进): yes | no。传统中文排版用 yes，简洁现代用 no。',
+'  · rule(标题线): none 无 | under 标题下通栏细线 | top-bottom 上下双线 | under-short 居中短线 | double 粗细双线 | leftbar 正文左侧竖线。',
+'  · orn(段落间隔符): none 无 | diamond ❖ | dot ··· | line —。长文建议 none 或 dot，短文可用 diamond。',
+'  · dropCap(首字下沉行数): 0 关闭 | 2 | 3 | 4。叙事类开头用 2~3，正式论述用 0。',
+'  · footer(页脚): none 无 | plain 居中页码 | rule 细线加页码 | corner 右下角页码。',
+'  · side(右侧竖排大字): true | false。短文、题词、名字类很出彩；长文会挤正文，选 false。',
+'',
+'  · bg(背景色) / text(正文色) / title(标题色) —— 都用 #RRGGBB。',
+'      这是最能拉开差距的一项：不要默认深绿或米白。',
+'      背景与正文的明度差要大，保证手机上能看清。',
+'      思路可以是：情绪对应（焦灼→暗红底、忧郁→深蓝底、温暖→暖褐底、清冷→青灰底）、',
+'      也可以是「反衬」（沉重的文字配明亮底、克制的文字配浓重底），后者往往更有张力。',
+'      正文色和标题色要有细微差别（标题稍突出），但不要差到像两套模板。',
+'',
+'【最后一句最重要】',
+'  这些参数没有「正确答案」，只有「和这段文字最匹配」的答案。',
+'  请务必根据正文内容做出你自己的判断，不要输出任何一组「放之四海皆准」的安全值。',
 ].join('\n');
 
 /* 图片指令：让模型只从用户给的编号里挑 */
@@ -1870,8 +1898,96 @@ function aiImgPrompt(imgCount){
 }
 
 function aiBuildMessages(text, style, imgCount){
-  var sys = AI_PROMPT + '\n' + AI_STYLE_DESC[style] + (imgCount ? aiImgPrompt(imgCount) : '');
+  var sys = AI_PROMPT + '\n\n' + AI_STYLE_DESC[style] + (imgCount ? '\n' + aiImgPrompt(imgCount) : '');
   return [{role:'system', content:sys}, {role:'user', content:text}];
+}
+
+/* 「换个排式」专用消息：只让模型重新设计排式参数，绝不碰正文。
+   关键点：
+     1) 把当前正在用的排式告诉模型，并明确要求「换一套不同的」
+        —— 否则模型会倾向输出和当前接近的方案，重掷几次看起来都一样。
+     2) 只给正文「摘要 + 长度」而不是全文，省 token 也让模型专注于排式设计。 */
+function aiBuildStyleOnlyMessages(state, style, hasImg){
+  var body = (state.body || '').trim();
+  var sample = body.length > 1200 ? body.slice(0, 600) + ' ……（略）…… ' + body.slice(-600) : body;
+  /* 提取正文的结构线索，让模型知道这是长文还是短文、有几个自然段 */
+  var paraCount = body.split(/\n\s*\n/).filter(function(x){ return x.trim(); }).length;
+  var hasQuote = /^>/m.test(body), hasList = /^[-•·]\s/m.test(body);
+  var hasSub = /^##\s/m.test(body);
+  var kindHint = paraCount <= 3 ? '短文（几个段落）'
+              : paraCount <= 12 ? '中等长度文章' : '长文章';
+  var structHint = [hasSub ? '有 ## 小标题' : '', hasQuote ? '有 > 引用' : '', hasList ? '有 - 列表' : '']
+              .filter(Boolean).join('、') || '纯段落，没有特殊结构标记';
+
+  var sys = [
+'你是一位中文长图排版专家。用户对当前的排式不满意，想要换一套。',
+'',
+'【最重要】这次你只需要输出一段 HTML 注释，内容是排式参数的 JSON。',
+'  绝对不要输出正文，不要重排段落，不要加任何标题或标记。',
+'  输出格式严格如下，只有这一行：',
+'  <!--FIT2:{"preset":"?","font":"?","titleSize":?,"bodySize":?,"lineHeight":?,"paraGap":?,"margin":?,"ls":?,"align":"?","indent":"?","rule":"?","orn":"?","dropCap":?,"footer":"?","bg":"?","text":"?","title":"?","side":?}-->',
+'',
+'【用户当前正在用的排式（你必须换一套明显不同的，不要输出雷同的方案）】',
+'  字体=' + (FONT_DEFS[state.font] ? FONT_DEFS[state.font].label : state.font) +
+  '，标题字号=' + state.titleSize +
+  '，正文字号=' + state.bodySize +
+  '，行距=' + state.lineHeight +
+  '，段距=' + state.paraGap +
+  '，页边距=' + state.margin +
+  '，字间距=' + state.ls +
+  '，对齐=' + (state.align === 'center' ? '居中' : '左对齐') +
+  '，缩进=' + (state.indent === 'yes' ? '有' : '无') +
+  '，标题线=' + state.rule +
+  '，间隔符=' + state.orn +
+  '，首字下沉=' + (state.dropCap || '关闭') +
+  '，页脚=' + state.footer +
+  '，侧题=' + (state.sideOn ? '开' : '关') +
+  '，配色：背景 ' + state.c.bg + ' / 正文 ' + state.c.text + ' / 标题 ' + state.c.title,
+'',
+'【要求】',
+'  1. 至少在「字体、配色、标题线/间隔符、字号比例」这四项里换掉其中三项，让新方案一眼看上去不同。',
+'  2. 不要只把数字微调 5% —— 那是同一套排版，不是「换一套」。',
+'  3. 新方案必须依然适合手机阅读：正文色与背景要有足够明度差，正文字号别低于 26。',
+'  4. 所有取值都必须在下面的合法范围内。',
+'',
+'【合法取值范围】',
+'  preset: plain | magazine | essay | dropcap | narrow | sidebar | mast | verse',
+'  font: song 宋体 | hei 黑体 | kai 楷体 | fang 仿宋 | yuan 圆体',
+'  titleSize: 28~90    bodySize: 26~52    lineHeight: 1.5~2.6    paraGap: 0.4~1.8',
+'  margin: 60~200      ls: 0~6            dropCap: 0 | 2 | 3 | 4',
+'  align: left | center        indent: yes | no        side: true | false',
+'  rule: none | under | top-bottom | under-short | double | leftbar',
+'  orn: none | diamond | dot | line',
+'  footer: none | plain | rule | corner',
+'  bg / text / title: #RRGGBB 六个十六进制字符',
+'',
+'【这篇文字的实际情况，供你判断】',
+'  篇幅：' + kindHint + '（约 ' + paraCount + ' 个自然段）',
+'  结构：' + structHint,
+'',
+'字体选择参考：',
+'  song 宋体：端正传统有书卷气（文言、庄重、怀旧）',
+'  hei  黑体：现代锐利干净（都市、理性、短句）',
+'  kai  楷体：手写感亲密柔软（私密日记、对某人说的话）',
+'  fang 仿宋：公文感克制朴素（叙事、记录）',
+'  yuan 圆体：温柔圆融可爱（治愈、童稚）',
+'',
+'配色思路：情绪对应（焦灼→暗红底、忧郁→深蓝底、温暖→暖褐底、清冷→青灰底），',
+'  或用「反衬」（沉重的文字配明亮底、克制的文字配浓重底）制造张力。',
+'  正文色与标题色要有细微差别，标题稍突出。',
+'',
+'  现在只输出那一行 <!--FIT2:{...}--> JSON，不要有任何其他文字。'
+  ].join('\n');
+
+  var user = [
+'这是当前正文的内容摘要（供你判断气质，不需要你重新排版）：',
+'',
+sample,
+'',
+'请针对这段文字设计一套**与当前排式明显不同**的新排式，只输出 FIT2 JSON。'
+  ].join('\n');
+
+  return [{role:'system', content:sys}, {role:'user', content:user}];
 }
 
 /* 单次调用。空内容/网络中断类错误值得自动重试一次 —— 这类是概率性的，
@@ -1884,7 +2000,11 @@ async function aiCallOnce(messages, onDelta){
     res = await fetch(AI_API, {
       method:'POST',
       headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + key},
-      body: JSON.stringify({model: AI_MODEL, messages: messages, stream: true, temperature: 0.6})
+      /* temperature 0.9：排版是有创造性的创作任务，需要多样性。
+         原来 0.6 太低 → 同一段文字反复生成，结果高度雷同（用户反馈「重复生成几次都很平庸」）。
+         0.9 让字体/字号/配色这些「判断类」输出每次都有实质差异，
+         又不会离谱到破坏标记格式（格式由下面的严格约束控制）。 */
+      body: JSON.stringify({model: AI_MODEL, messages: messages, stream: true, temperature: 0.9})
     });
   }catch(e){
     throw new Error('连不上服务器，检查网络后重试');
@@ -2062,11 +2182,16 @@ function aiApplyFit(fit){
   return Array.from(new Set(applied));
 }
 /* 按背景明度挑一个看得清的正文色 */
+/* 按背景明度挑一个看得清的正文色。
+   注意要防 NaN：非法值（如 'zzz'）会被当成 3 位色值展开成 'zZzZzZ'，
+   parseInt 得到 NaN → lum 为 NaN → 比较恒为 false → 静默走错分支，
+   可能返回浅色正文配浅色背景，用户看到「字看不清」。 */
 function readableOn(hex){
-  var h = (hex||'').replace('#','');
+  var h = String(hex || '').replace('#','').trim();
+  if(!/^[0-9a-fA-F]{3}$|^[0-9a-fA-F]{6}$/.test(h)) return '#E8E4DA';
   if(h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
-  if(h.length !== 6) return '#E5E0CE';
   var r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
+  if(!isFinite(r) || !isFinite(g) || !isFinite(b)) return '#E8E4DA';
   var lum = (0.299*r + 0.587*g + 0.114*b) / 255;
   return lum > 0.55 ? '#2A2622' : '#E8E4DA';
 }
@@ -2521,79 +2646,106 @@ $('btnAiUndo').addEventListener('click', function(){
   aiSetStatus('info', '已撤销上一次 AI 排版');
   toast('已撤销');
 });
-$('btnAiRun').addEventListener('click', async function(){
+/* 核心排版流程。mode: 'full'（重排正文） | 'styleOnly'（只换排式，保留正文标记） */
+async function aiRun(mode){
   if(aiBusy){ toast('正在跑，稍等'); return; }
   var key = aiGetKey();
   if(!key){ aiSetStatus('bad', '请先在上面填 API Key'); toast('先填 API Key'); $('foldAI').classList.add('open'); $('inAiKey').focus(); return; }
   var text = (st.body || '').trim();
-  if(text.length < 10){ aiSetStatus('bad', '正文太短，先粘一段文字再让 AI 排版'); toast('正文太短'); return; }
-  if(text.length > 20000){ aiSetStatus('bad', '正文超过 20000 字，请分段使用'); toast('正文太长，先分段'); return; }
-
-  var useImg = $('ckAiImg').checked && userImgs.length > 0;
+  var styleOnly = (mode === 'styleOnly');
+  if(!styleOnly){
+    if(text.length < 10){ aiSetStatus('bad', '正文太短，先粘一段文字再让 AI 排版'); toast('正文太短'); return; }
+    if(text.length > 20000){ aiSetStatus('bad', '正文超过 20000 字，请分段使用'); toast('正文太长，先分段'); return; }
+  }
+  /* 只换排式时不需要图片指令 */
+  var useImg = !styleOnly && $('ckAiImg').checked && userImgs.length > 0;
   aiBusy = true;
-  $('btnAiRun').disabled = true;
-  aiSetStatus('busy', 'AI 正在读你的文章…');
-  var t0 = Date.now();
+  $('btnAiRun').disabled = true; $('btnAiRetry').disabled = true;
+  aiSetStatus('busy', styleOnly ? '正在重新设计排式…' : 'AI 正在读你的文章…');
+  var tStart = Date.now();
 
   try{
-    var raw = await aiCall(aiBuildMessages(text, aiCurStyle(), useImg ? userImgs.length : 0),
-      function(full){
-        /* 流式反馈：只显示已生成的字数，让用户知道在动。
-           full 为空串 = 重试新一轮，把状态改成「重新尝试」而不是「已生成 0 字」 */
-        if(!full){ aiSetStatus('busy', '首次没拿到内容，正在重试…'); return; }
-        aiSetStatus('busy', 'AI 正在排版…已生成 ' + full.replace(/<!--[\s\S]*?-->/g,'').length + ' 字');
-      });
+    var messages = styleOnly
+      ? aiBuildStyleOnlyMessages(st, aiCurStyle(), userImgs.length > 0 && $('ckAiImg').checked)
+      : aiBuildMessages(text, aiCurStyle(), useImg ? userImgs.length : 0);
+    var raw = await aiCall(messages, function(full){
+      /* full 为空串 = 重试新一轮，把状态改成「重新尝试」而不是「已生成 0 字」 */
+      if(!full){
+        aiSetStatus('busy', styleOnly ? '首次没拿到结果，正在重试…' : '首次没拿到内容，正在重试…');
+        return;
+      }
+      var n = full.replace(/<!--[\s\S]*?-->/g,'').length;
+      aiSetStatus('busy', (styleOnly ? 'AI 正在重排…' : 'AI 正在排版…') + '已生成 ' + n + ' 字');
+    });
     var r = aiParse(raw);
-    /* 剥掉 FIT 注释后还几乎没内容 = 模型只吐了参数没排版，或正文被标记吃掉了。
-       把原始长度报出来，便于分辨是「模型没干活」还是「解析有问题」。 */
-    if(!r.body || r.body.length < 5){
+    /* 剥掉 FIT 注释后还几乎没内容 = 模型只吐了参数没排版，或正文被标记吃掉了 */
+    if(!styleOnly && (!r.body || r.body.length < 5)){
       var onlyComment = raw.replace(/<!--[\s\S]*?-->/g,'').trim().length < 5;
       throw new Error(onlyComment
         ? '模型只返回了排版参数、没有正文。换个风格或重跑一次试试'
         : '模型返回内容过短（' + r.body.length + ' 字），建议重跑');
     }
+    if(styleOnly && !Object.keys(r.fit || {}).length){
+      throw new Error('模型没有给出排式参数，重试一次');
+    }
 
     aiUndoStack.push(aiSnapshot());
     if(aiUndoStack.length > 10) aiUndoStack.shift();
 
-    /* 回填：正文（含 IMG 标记）*/
-    st.body = r.body;
-    /* 首个 # 标题回填到标题栏（仅当用户原本没填标题）。
-       顺手剥掉行内标记并限长：标题栏是单行输入，带 ** 或 {{}} 会很难看。
-       变量名避开 t0 —— 同函数下方已用 t0 记开始时间，var 提升会互相覆盖。 */
-    var hm = /^[ \t]*#[ \t]+(.+)$/m.exec(r.body);
-    if(hm && !st.title.trim()){
-      var cleanTitle = hm[1]
-        .replace(/\*\*/g, '').replace(/~~/g, '')
-        .replace(/\{\{[0-9a-fA-F]{3,8}\}\}/g, '').replace(/\{\{\/\}\}/g, '')
-        .replace(/<[^>]*>/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-      if(cleanTitle) st.title = cleanTitle.slice(0, 40);
+    if(!styleOnly){
+      /* 回填：正文（含 IMG 标记）*/
+      st.body = r.body;
+      /* 首个 # 标题回填到标题栏（仅当用户原本没填标题）。
+         顺手剥掉行内标记并限长：标题栏是单行输入，带 ** 或 {{}} 会很难看。
+         变量名避开 t0 —— 同函数下方已用 t0 记开始时间，var 提升会互相覆盖。 */
+      var hm = /^[ \t]*#[ \t]+(.+)$/m.exec(r.body);
+      if(hm && !st.title.trim()){
+        var cleanTitle = hm[1]
+          .replace(/\*\*/g, '').replace(/~~/g, '')
+          .replace(/\{\{[0-9a-fA-F]{3,8}\}\}/g, '').replace(/\{\{\/\}\}/g, '')
+          .replace(/<[^>]*>/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+        if(cleanTitle) st.title = cleanTitle.slice(0, 40);
+      }
+      /* 未勾选配图时，把 IMG 标记清掉，避免正文里留死标记 */
+      if(!useImg) st.body = aiStripImg(st.body);
     }
 
     var applied = aiApplyFit(r.fit);
-    /* 未勾选配图时，把 IMG 标记清掉，避免正文里留死标记 */
-    if(!useImg) st.body = aiStripImg(st.body);
-
     syncUI(); scheduleRender(0); saveSoon();
 
-    var imgs = aiCountImg(st.body);
-    var sec = ((Date.now() - t0) / 1000).toFixed(1);
-    var msg = '✅ 排版完成（' + sec + '秒）';
-    if(applied.length) msg += ' · 已配 ' + applied.join('、');
-    if(useImg && imgs) msg += ' · 插入 ' + imgs + ' 张配图';
-    aiSetStatus('ok', msg + '。可在下方继续手动修改。');
-    toast('AI 排版完成');
+    var sec = ((Date.now() - tStart) / 1000).toFixed(1);
+    var msg = styleOnly
+      ? '🎲 换了一套排式（' + sec + '秒）'
+      : '✅ 排版完成（' + sec + '秒）';
+    if(applied.length) msg += ' · ' + applied.join('、');
+    if(!styleOnly){
+      var imgs = aiCountImg(st.body);
+      if(useImg && imgs) msg += ' · 插入 ' + imgs + ' 张配图';
+    }
+    /* 排式速览：把这次的关键选择直接说出来，方便和上一次对比、判断要不要重掷。
+       这是解决「看起来都差不多」的关键 —— 用户得能看见 AI 到底改了什么。 */
+    var snap = [
+      (FONT_DEFS[st.font] ? FONT_DEFS[st.font].label : st.font),
+      '标题' + st.titleSize + '/正文' + st.bodySize,
+      '行距' + Number(st.lineHeight).toFixed(1),
+      st.margin >= 150 ? '宽边距' : (st.margin <= 80 ? '窄边距' : '中边距'),
+      st.bg ? st.bg.toUpperCase() : ''
+    ].join(' · ');
+    aiSetStatus('ok', msg + '\n本次：' + snap + '\n不满意就点「换个排式」，会换一整套不同的。');
+    toast(styleOnly ? '已换一套排式' : 'AI 排版完成');
     await aiImgWait();
   }catch(err){
     aiSetStatus('bad', '❌ ' + (err.message || err));
     toast('AI 失败：' + (err.message || err));
   }finally{
     aiBusy = false;
-    $('btnAiRun').disabled = false;
+    $('btnAiRun').disabled = false; $('btnAiRetry').disabled = false;
   }
-});
+}
+$('btnAiRun').addEventListener('click', function(){ aiRun('full'); });
+$('btnAiRetry').addEventListener('click', function(){ aiRun('styleOnly'); });
 
 /* 初始化 */
 syncUI();
