@@ -108,6 +108,35 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:22px; hei
 .slice-item .dim{flex:1; font-variant-numeric:tabular-nums;}
 .slice-item button{background:var(--panel2); border:1px solid var(--line); color:var(--tx2); border-radius:8px; padding:5px 12px; font-size:12px; cursor:pointer;}
 .slice-item button:active{color:var(--acc); border-color:var(--acc);}
+/* 素材库条目 */
+.mat-item{display:flex; align-items:flex-start; gap:10px; padding:9px 4px; border-bottom:1px dashed var(--line);}
+.mat-thumb{
+  width:62px; height:62px; flex:none; border-radius:8px; border:1px solid var(--line);
+  object-fit:contain; background:var(--panel2);
+  /* 透明 PNG 用棋盘格底，方便看清剪影形状 */
+  background-image:
+    linear-gradient(45deg, #1a211c 25%, transparent 25%),
+    linear-gradient(-45deg, #1a211c 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #1a211c 75%),
+    linear-gradient(-45deg, transparent 75%, #1a211c 75%);
+  background-size:10px 10px; background-position:0 0,0 5px,5px -5px,-5px 0;
+}
+.mat-meta{flex:1; min-width:0;}
+.mat-name,.mat-tags{
+  width:100%; background:var(--panel2); border:1px solid var(--line); border-radius:7px;
+  color:var(--tx); font-size:13px; padding:6px 9px; outline:none; font-family:inherit;
+}
+.mat-name{font-weight:600; margin-bottom:5px;}
+.mat-tags{font-size:12px; color:var(--tx2);}
+.mat-name:focus,.mat-tags:focus{border-color:var(--acc);}
+.mat-sub{font-size:10.5px; color:var(--tx2); opacity:.8; margin-top:4px; font-variant-numeric:tabular-nums;}
+.mat-ops{display:flex; flex-direction:column; gap:5px; flex:none;}
+.mat-ops button{
+  background:var(--panel2); border:1px solid var(--line); color:var(--tx2);
+  border-radius:7px; padding:5px 9px; font-size:11.5px; cursor:pointer;
+}
+.mat-ops button:active{color:var(--acc); border-color:var(--acc);}
+.mat-ops button.danger:active{color:var(--danger); border-color:var(--danger);}
 .note{font-size:11.5px; color:var(--tx2); opacity:.8; line-height:1.7; margin-top:8px;}
 input[type=password]{
   width:100%; background:var(--panel2); border:1px solid var(--line); border-radius:10px;
@@ -167,6 +196,20 @@ input[type=password]:focus{border-color:var(--acc);}
   </nav>
 
   <div class="panel on" id="panel-text">
+    <!-- 素材库：AI 配图的来源。用户上传 PNG/JPG 贴图，AI 按语义挑选 -->
+    <div class="fold open" id="foldMat">
+      <div class="fold-h"><span>🖼 素材库（AI 选图）</span><span class="arw">›</span></div>
+      <div class="fold-body">
+        <div class="note" style="margin-top:0">上传 PNG 贴图（透明背景的剪影最合适），AI 排版时会读素材说明，按内容语义挑选合适的插图位置。</div>
+        <div class="mini-btns">
+          <button id="btnMatAdd">＋ 添加素材</button>
+          <button id="btnMatExport">导出素材包</button>
+        </div>
+        <input type="file" id="fileMat" accept="image/*" multiple style="display:none">
+        <div class="note" id="matUsage"></div>
+        <div id="matList" class="slice-list"></div>
+      </div>
+    </div>
     <div class="fold" id="foldAI">
       <div class="fold-h"><span>✨ AI 智能排版</span><span class="arw">›</span></div>
       <div class="fold-body">
@@ -1480,6 +1523,168 @@ function drawBackground(ctx, L, slice, img){
     ctx.restore();
   }
 }
+/* ================= 素材库（IndexedDB）=================
+   为什么必须用 IndexedDB：实测 localStorage 只有 5MB，
+   存 1080×1440 的 JPEG（q0.82）单张约 914KB → 只能放 4~5 张就满了。
+   IndexedDB 配额实测 10GB，存 81 张（71MB）仍未触顶。
+   所以素材存 Blob 进 IndexedDB，只在内存里保留 Image 对象引用。 */
+var MAT_DB = 'textlongimg-mats', MAT_STORE = 'mats', MAT_VER = 1;
+var matDB = null, matList = [];   /* [{id, name, tags, blob, w, h, size}] */
+
+function matOpen(){
+  if(matDB) return Promise.resolve(matDB);
+  return new Promise(function(res, rej){
+    if(!self.indexedDB){ rej(new Error('浏览器不支持 IndexedDB')); return; }
+    var req = indexedDB.open(MAT_DB, MAT_VER);
+    req.onupgradeneeded = function(){
+      var db = req.result;
+      if(!db.objectStoreNames.contains(MAT_STORE)) db.createObjectStore(MAT_STORE, {keyPath:'id'});
+    };
+    req.onsuccess = function(){ matDB = req.result; res(matDB); };
+    req.onerror = function(){ rej(req.error || new Error('打不开素材库')); };
+  });
+}
+function matTx(mode){
+  return matOpen().then(function(db){
+    return db.transaction(MAT_STORE, mode).objectStore(MAT_STORE);
+  });
+}
+function matAll(){
+  return matTx('readonly').then(function(store){
+    return new Promise(function(res, rej){
+      var r = store.getAll();
+      r.onsuccess = function(){ res(r.result || []); };
+      r.onerror = function(){ rej(r.error); };
+    });
+  });
+}
+function matPut(rec){
+  return matTx('readwrite').then(function(store){
+    return new Promise(function(res, rej){
+      var tx = store.transaction;
+      var r = store.put(rec);
+      r.onsuccess = function(){ res(rec); };
+      r.onerror = function(){ rej(r.error || new Error('存储失败，可能是空间不足')); };
+      tx.onabort = function(){ rej(tx.error || new Error('存储被中断（空间不足）')); };
+    });
+  });
+}
+function matDel(id){
+  return matTx('readwrite').then(function(store){
+    return new Promise(function(res, rej){
+      var r = store.delete(id);
+      r.onsuccess = function(){ res(true); };
+      r.onerror = function(){ rej(r.error); };
+    });
+  });
+}
+function matClear(){
+  return matTx('readwrite').then(function(store){
+    return new Promise(function(res, rej){
+      var r = store.clear();
+      r.onsuccess = function(){ res(true); };
+      r.onerror = function(){ rej(r.error); };
+    });
+  });
+}
+/* 素材总占用（MB） */
+function matUsage(){
+  return matList.reduce(function(a, m){ return a + (m.size || 0); }, 0);
+}
+
+/* 把素材同步成 userImgs（渲染层依赖这个数组） */
+function matSync(){
+  userImgs.length = 0;
+  for(var i=0; i<matList.length; i++){
+    var m = matList[i];
+    var im = new Image();
+    im.src = m.url;
+    aiImgCache[m.url] = im;
+    userImgs.push(im);
+  }
+}
+/* 启动时加载：Blob → objectURL，注入 userImgs */
+function matLoadAll(){
+  return matAll().then(function(recs){
+    matList = recs.sort(function(a,b){ return (a.createdAt||0) - (b.createdAt||0); });
+    for(var i=0;i<matList.length;i++){
+      if(!matList[i].url){
+        matList[i].url = URL.createObjectURL(matList[i].blob);
+      }
+    }
+    matSync();
+    return matList;
+  }).catch(function(e){
+    matList = [];
+    userImgs.length = 0;
+    return [];
+  });
+}
+
+/* 压缩后入库。PNG 会转成 JPEG（贴图插页用不着 PNG 的透明与无损），
+   但透明 PNG 例外——剪影类素材要保留透明通道，改存 PNG。 */
+function matAddFromFile(file, name, tags){
+  return new Promise(function(resolve, rej){
+    var fr = new FileReader();
+    fr.onerror = function(){ rej(new Error('读取文件失败')); };
+    fr.onload = function(){
+      var im = new Image();
+      im.onerror = function(){ rej(new Error('这不是有效的图片')); };
+      im.onload = function(){
+        var needAlpha = /png|webp|gif/i.test(file.type) && hasAlpha(im);
+        var MAXW = 1200;
+        var sc = Math.min(1, MAXW / im.width);
+        var c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(im.width * sc));
+        c.height = Math.max(1, Math.round(im.height * sc));
+        var g = c.getContext('2d');
+        if(needAlpha) g.clearRect(0,0,c.width,c.height);
+        try{ g.drawImage(im, 0, 0, c.width, c.height); }catch(e){}
+        var type = needAlpha ? 'image/png' : 'image/jpeg';
+        var quality = needAlpha ? undefined : 0.82;
+        c.toBlob(function(blob){
+          if(!blob){ rej(new Error('压缩失败，可能是图片太大')); return; }
+          if(blob.size > 3.2 * 1024 * 1024){
+            rej(new Error('这张图压完还有 ' + Math.round(blob.size/1024) + 'KB，太大了，换一张小一点的'));
+            return;
+          }
+          var rec = {
+            id: 'm' + Date.now().toString(36) + Math.floor(Math.random()*1e4).toString(36),
+            name: (name || file.name || '素材').replace(/\.[a-z0-9]+$/i,'').slice(0, 24),
+            tags: (tags || '').slice(0, 60),
+            blob: blob,
+            w: c.width, h: c.height, size: blob.size,
+            type: type,
+            createdAt: Date.now()
+          };
+          matPut(rec).then(function(){
+            rec.url = URL.createObjectURL(blob);
+            matList.push(rec);
+            matSync();
+            resolve(rec);
+          }).catch(function(e){
+            rej(new Error(e.message || '保存失败'));
+          });
+        }, type, quality);
+      };
+      im.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+/* 检测图片是否真的用了透明通道（避免把普通 PNG 当成剪影处理） */
+function hasAlpha(im){
+  try{
+    var c = document.createElement('canvas');
+    c.width = Math.min(64, im.width); c.height = Math.min(64, im.height);
+    var g = c.getContext('2d');
+    g.drawImage(im, 0, 0, c.width, c.height);
+    var d = g.getImageData(0, 0, c.width, c.height).data;
+    for(var i=3; i<d.length; i+=4){ if(d[i] < 250) return true; }
+  }catch(e){}
+  return false;
+}
+
 /* ================= 装帧装饰图层 =================
    设计目标：像独立杂志 / 实体书内页，而不是 Word 排版。
    全部程序化生成（不依赖任何图片素材），六层叠加：
@@ -2532,20 +2737,31 @@ var AI_PROMPT = [
 ].join('\n');
 
 /* 图片指令：让模型只从用户给的编号里挑 */
-function aiImgPrompt(imgCount){
-  return [
+/* 配图提示词。关键：必须把素材「是什么」告诉模型，否则它只看到编号，
+   没法按内容语义挑选（用户上传时写的描述就是给模型看的）。 */
+function aiImgPrompt(mats){
+  if(!mats || !mats.length) return '';
+  var lines = [
 '',
-'【配图】',
-'  用户已经上传了 ' + imgCount + ' 张图，正文中用 IMG:N 标记插图位置（N 是图片编号，从 1 开始）：',
-'    - 在需要视觉呼吸的位置插入 IMG:N，引擎会把这张图整幅放进长图里',
-'    - 最多插 2~3 处，宁缺毋滥；找不到合适位置就一张都不插',
-'    - 配图要服务于内容节奏，不要打断连贯的段落',
-'  插图标记单独占一行。'
-  ].join('\n');
+'【素材库】用户提供了 ' + mats.length + ' 张贴图素材，正文中用 IMG:N 标记插图位置（N 是编号，从 1 开始）：'
+  ];
+  mats.forEach(function(m, i){
+    var desc = (m.tags || '').trim();
+    var kind = m.type === 'image/png' ? '（透明背景）' : '';
+    lines.push('  IMG:' + (i+1) + ' → ' + m.name + kind + (desc ? ' ｜ ' + desc : ' ｜ （无描述）'));
+  });
+  lines.push('');
+  lines.push('  请先读一遍上面的素材说明，再决定用哪几张：');
+  lines.push('    - 挑素材要看描述与当前这段文字的语境是否吻合，不要随便按编号顺序取');
+  lines.push('    - 同一张素材不要重复使用');
+  lines.push('    - 最多插 2~3 处。找不到贴合的素材就一张都不插，宁缺毋滥');
+  lines.push('    - 插图要放在需要「视觉呼吸」的位置（章节开头、情绪转折后、结尾前），不要打断连贯的段落');
+  lines.push('  插图标记单独占一行。');
+  return lines.join('\n');
 }
 
-function aiBuildMessages(text, style, imgCount){
-  var sys = AI_PROMPT + '\n\n' + AI_STYLE_DESC[style] + (imgCount ? '\n' + aiImgPrompt(imgCount) : '');
+function aiBuildMessages(text, style, mats){
+  var sys = AI_PROMPT + '\n\n' + AI_STYLE_DESC[style] + (mats && mats.length ? '\n' + aiImgPrompt(mats) : '');
   return [{role:'system', content:sys}, {role:'user', content:text}];
 }
 
@@ -2948,9 +3164,11 @@ function aiRefreshKeyUI(){
 }
 function aiRefreshImgHint(){
   var n = userImgs.length;
-  $('aiImgHint').textContent = n
-    ? '已上传 ' + n + ' 张底图，AI 可从中挑选（标记 IMG:1 / IMG:2 …）'
-    : '还没上传底图 —— AI 只能做纯文字排版';
+  if(n > 0){
+    $('aiImgHint').textContent = '素材库有 ' + n + ' 张，AI 会按说明挑选并标注 IMG:1 / IMG:2 …';
+  }else{
+    $('aiImgHint').textContent = '素材库为空 —— AI 只能做纯文字排版（在「素材库」里加几张试试）';
+  }
   $('ckAiImg').disabled = n === 0;
   if(n === 0) $('ckAiImg').checked = false;
 }
@@ -3299,21 +3517,13 @@ $('fileBg').addEventListener('change', function(){
       try{ url = c.toDataURL('image/jpeg', 0.72); }catch(e){}
       if(!url){ toast('这张图处理失败，换一张试试'); return; }
       if(url.length > 2600000){ toast('图片太大没能压缩成功，建议换一张较小的'); return; }
-      /* 第一张当底图（整份长图铺底），之后每张都进图库供 AI 排版时分配插图 */
-      var extra = userImgs.length;
-      if(!st.bgImg){
-        st.bgImg = url;
-        bgState = {src:null, img:null, ready:null};
-        showBgUI(); saveSoon();
-        ensureBgImage().then(function(){ scheduleRender(60); });
-        toast('底图已设置 ' + c.width + '×' + c.height);
-      }else{
-        var li = new Image();
-        li.src = url;
-        userImgs.push(li);
-        aiImgCache[url] = li;
-        toast('图库第 ' + userImgs.length + ' 张已添加，AI 排版时可用');
-      }
+      /* 底图 = 整份长图铺底的背景。素材库是另一回事（供 AI 挑插图），
+         两者分开管理，避免「上传底图」顺手把图片塞进图库造成困惑。 */
+      st.bgImg = url;
+      bgState = {src:null, img:null, ready:null};
+      showBgUI(); saveSoon();
+      ensureBgImage().then(function(){ scheduleRender(60); });
+      toast('底图已设置 ' + c.width + '×' + c.height + '（插图请用上方「素材库」）');
       aiRefreshImgHint(); scheduleRender(60);
     };
     im.onerror = function(){ toast('图片读取失败'); };
@@ -3442,6 +3652,138 @@ function aiRestore(s){
   if(s.deco) st.deco = clone(s.deco);
   syncUI(); scheduleRender(0); saveSoon();
 }
+/* ================= 素材库 UI ================= */
+/* 素材总占用的人性化显示：小图时不至于显示 0.0MB */
+function matUsageText(){
+  var b = matUsage();
+  if(b < 1024) return b + ' B';
+  if(b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+  if(b < 1024*1024*1024) return (b/1048576).toFixed(1) + ' MB';
+  return (b/1073741824).toFixed(2) + ' GB';
+}
+function matRenderList(){
+  var box = $('matList');
+  var used = matUsage();
+  $('matUsage').textContent = matList.length
+    ? matList.length + ' 张素材 · 占用 ' + matUsageText() + ' · 存在本机浏览器（IndexedDB），关掉页面也不会丢'
+    : '还没有素材。素材存在 IndexedDB（配额约 10GB），关掉页面也不会丢。';
+  if(!matList.length){ box.innerHTML = ''; return; }
+  var html = '';
+  for(var i=0;i<matList.length;i++){
+    var m = matList[i];
+    html += '<div class="mat-item" data-id="' + m.id + '">'
+      + '<img class="mat-thumb" src="' + m.url + '" alt="">'
+      + '<div class="mat-meta">'
+      + '<input type="text" class="mat-name" value="' + escapeHtml(m.name) + '" maxlength="24" placeholder="素材名">'
+      + '<input type="text" class="mat-tags" value="' + escapeHtml(m.tags||'') + '" maxlength="60" placeholder="描述：画面内容、氛围、适合什么场景">'
+      + '<div class="mat-sub">第 ' + (i+1) + ' 张 · ' + m.w + '×' + m.h + ' · ' + Math.round(m.size/1024) + 'KB'
+      + (m.type === 'image/png' ? ' · 透明' : '') + '</div>'
+      + '</div>'
+      + '<div class="mat-ops">'
+      + '<button data-m="dup" title="再存一份">复制</button>'
+      + '<button data-m="del" class="danger">删除</button>'
+      + '</div></div>';
+  }
+  box.innerHTML = html;
+}
+function escapeHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+function matSaveMeta(id, name, tags){
+  var m = matList.filter(function(x){ return x.id === id; })[0];
+  if(!m) return;
+  m.name = (name || m.name || '素材').slice(0, 24);
+  m.tags = (tags || '').slice(0, 60);
+  matPut(m).catch(function(e){ toast('保存说明失败：' + (e.message||e)); });
+}
+$('matList').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if(!b) return;
+  var id = b.closest('.mat-item').dataset.id;
+  var m = matList.filter(function(x){ return x.id === id; })[0];
+  if(!m) return;
+  if(b.dataset.m === 'del'){
+    if(!confirm('删除素材「' + m.name + '」？')) return;
+    matDel(id).then(function(){
+      if(m.url) URL.revokeObjectURL(m.url);
+      matList = matList.filter(function(x){ return x.id !== id; });
+      matSync(); matRenderList(); aiRefreshImgHint(); scheduleRender(60);
+      toast('已删除');
+    }).catch(function(err){ toast('删除失败：' + (err.message||err)); });
+  }else if(b.dataset.m === 'dup'){
+    var rec = {id:'m'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36),
+               name:m.name, tags:m.tags, blob:m.blob, w:m.w, h:m.h, size:m.size,
+               type:m.type, createdAt:Date.now()};
+    matPut(rec).then(function(){
+      rec.url = URL.createObjectURL(rec.blob);
+      matList.push(rec); matSync(); matRenderList(); aiRefreshImgHint();
+      toast('已复制一份');
+    }).catch(function(err){ toast('复制失败：' + (err.message||err)); });
+  }
+});
+$('matList').addEventListener('change', function(e){
+  var it = e.target.closest('.mat-item'); if(!it) return;
+  var nameEl = it.querySelector('.mat-name'), tagEl = it.querySelector('.mat-tags');
+  matSaveMeta(it.dataset.id, nameEl ? nameEl.value : '', tagEl ? tagEl.value : '');
+  toast('说明已保存，AI 下次会参考');
+});
+$('btnMatAdd').addEventListener('click', function(){ $('fileMat').click(); });
+$('fileMat').addEventListener('change', function(){
+  var files = Array.prototype.slice.call(this.files || []);
+  this.value = '';
+  if(!files.length) return;
+  var okN = 0;
+  /* 串行添加：并行会让 IndexedDB 事务互相干扰 */
+  var chain = Promise.resolve();
+  files.forEach(function(f){
+    chain = chain.then(function(){
+      return matAddFromFile(f).then(function(rec){
+        okN++;
+      }).catch(function(err){
+        toast('「' + f.name.slice(0,14) + '」' + (err.message||err));
+      });
+    });
+  });
+  chain.then(function(){
+    matRenderList(); aiRefreshImgHint(); scheduleRender(60);
+    if(okN) toast('已添加 ' + okN + ' 张素材 · 给它们写上描述，AI 才选得准');
+  });
+});
+$('btnMatExport').addEventListener('click', function(){
+  if(!matList.length){ toast('素材库是空的'); return; }
+  if(matList.length > 30){ toast('素材太多（' + matList.length + ' 张），导出包会很大'); return; }
+  toast('正在打包 ' + matList.length + ' 张素材…');
+  var chain = Promise.resolve();
+  var entries = [];
+  matList.forEach(function(m, i){
+    chain = chain.then(function(){
+      return new Promise(function(res){
+        var fr = new FileReader();
+        fr.onload = function(){
+          var ext = m.type === 'image/png' ? 'png' : 'jpg';
+          entries.push({name: (m.name || ('mat'+i)) + '.' + ext, data: new Uint8Array(fr.result)});
+          res();
+        };
+        fr.onerror = function(){ res(); };
+        fr.readAsArrayBuffer(m.blob);
+      });
+    });
+  });
+  chain.then(function(){
+    if(!entries.length){ toast('读取素材失败'); return; }
+    /* 附一份说明清单，导入方能知道每张是什么 */
+    var manifest = matList.map(function(m, i){
+      return (i+1) + '\t' + m.name + '\t' + (m.tags||'');
+    }).join('\n');
+    var enc = new TextEncoder();
+    entries.push({name: '_素材说明.txt', data: enc.encode(manifest)});
+    var zip = buildZip(entries);
+    triggerDownload(zip, '文字长图-素材包.zip');
+    toast('已导出 ' + (matList.length + 1) + ' 个文件');
+  });
+});
+
 $('btnAiUndo').addEventListener('click', function(){
   if(!aiUndoStack.length){ toast('没有可撤销的 AI 排版'); return; }
   aiRestore(aiUndoStack.pop());
@@ -3469,7 +3811,7 @@ async function aiRun(mode){
   try{
     var messages = styleOnly
       ? aiBuildStyleOnlyMessages(st, aiCurStyle(), userImgs.length > 0 && $('ckAiImg').checked)
-      : aiBuildMessages(text, aiCurStyle(), useImg ? userImgs.length : 0);
+      : aiBuildMessages(text, aiCurStyle(), useImg ? matList : null);
     var raw = await aiCall(messages, function(full){
       /* full 为空串 = 重试新一轮，把状态改成「重新尝试」而不是「已生成 0 字」 */
       if(!full){
@@ -3564,11 +3906,16 @@ $('btnAiRetry').addEventListener('click', function(){ aiRun('styleOnly'); });
 /* 初始化 */
 syncUI();
 aiRefreshKeyUI();
-aiRefreshImgHint();
 if(st.customCss) applyCustomCss(st.customCss);
 if(st.bgImg) ensureBgImage().then(function(){ scheduleRender(0); });
 if(canShareFiles()) $('btnShareAll').style.display = 'block';
 scheduleRender(50);
+/* 素材库从 IndexedDB 异步载入（刷新后仍在） */
+matLoadAll().then(function(){
+  matRenderList();
+  aiRefreshImgHint();
+  scheduleRender(0);
+}).catch(function(){ matRenderList(); aiRefreshImgHint(); });
 </script>
 </body>
 </html>
