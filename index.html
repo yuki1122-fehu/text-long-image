@@ -203,10 +203,18 @@ input[type=password]:focus{border-color:var(--acc);}
         <div class="note" style="margin-top:0">上传 PNG 贴图（透明背景的剪影最合适），AI 排版时会读素材说明，按内容语义挑选合适的插图位置。</div>
         <div class="mini-btns">
           <button id="btnMatAdd">＋ 添加素材</button>
+          <button id="btnMatTags">✨ AI 写说明</button>
+        </div>
+        <div class="mini-btns" style="margin-top:6px">
           <button id="btnMatExport">导出素材包</button>
         </div>
         <input type="file" id="fileMat" accept="image/*" multiple style="display:none">
         <div class="note" id="matUsage"></div>
+        <div class="switch-row" style="padding:6px 2px 2px">
+          <span style="font-size:12.5px">添加后自动用 AI 看图写说明</span>
+          <input type="checkbox" id="ckMatAutoTag" checked>
+        </div>
+        <div class="note">说明就是给 AI 看的：写清画面主体、情绪、适合什么场景，AI 才选得准。没写也没关系，点「✨ AI 写说明」让它看图自动写。</div>
         <div id="matList" class="slice-list"></div>
       </div>
     </div>
@@ -2616,11 +2624,111 @@ $('btnShareAll').addEventListener('click', async function(){
 var AI_KEY_LS = 'textlongimg-aikey';
 var AI_MODEL = 'deepseek-chat';
 var AI_API = 'https://api.deepseek.com/chat/completions';
-var aiUndoStack = [], aiBusy = false;
+/* 视觉模型：DeepSeek 的 V4.1-Flash 原生支持图片输入，
+   图片按尺寸折算 token（单张上限 384 token），与文字同价、不额外收视觉费。
+   老名字 deepseek-v4-flash-vision-exp 已被官方标注退役（请求仍由 V4.1-Flash 服务），
+   保留作为兜底，万一某个账号只能用老模型。 */
+var AI_VISION_MODELS = ['deepseek-v4-flash-vision-exp', 'deepseek-chat'];
+var aiVisionModel = 0;
+var aiUndoStack = [], aiBusy = false, aiVisionBusy = false;
 
 function aiGetKey(){ try{ return localStorage.getItem(AI_KEY_LS) || ''; }catch(e){ return ''; } }
 function aiSetKey(k){
   try{ k ? localStorage.setItem(AI_KEY_LS, k) : localStorage.removeItem(AI_KEY_LS); }catch(e){}
+}
+
+/* ---------------- 素材自动识图（写说明这件事交给 AI）----------------
+   用户只想丢图进来，不想手写描述。所以：把图丢给视觉模型，
+   让它写「画面内容 + 情绪 + 适合什么场景」这样的标签，直接填进描述栏。 */
+var AI_TAGS_PROMPT =
+'你是长图排版的美术助理。请看这张图片素材，输出一行中文描述，用「/」分隔，最多 40 字，格式严格如下：\n' +
+'  画面主体 / 视觉风格 / 情绪气质 / 适合的正文场景\n' +
+'要求：\n' +
+'  1. 主体要具体（例：一只站立的羔羊 / 枯枝上的乌鸦 / 雾中的山脊），不要写「一张图」这种废话\n' +
+'  2. 风格说清形式（剪影/线描/水彩/摄影/几何/版画）与主色（可带一个色名）\n' +
+'  3. 情绪用 1~2 个词（孤独/温柔/肃杀/宁静/荒凉/温暖）\n' +
+'  4. 场景说明它适合配什么内容的文章（雪夜/离别/悼念/希望/城市/自然）\n' +
+'  5. 只输出这一行，不要任何解释、前言、引号';
+
+async function aiDescribeMaterial(rec){
+  var key = aiGetKey();
+  if(!key) throw new Error('还没填 API Key');
+  var b64 = await blobToBase64(rec.blob);
+  var payload = {
+    model: AI_VISION_MODELS[aiVisionModel],
+    messages: [{role:'user', content: [
+      {type:'text', text: AI_TAGS_PROMPT},
+      {type:'image_url', image_url: {url: 'data:' + (rec.type || 'image/png') + ';base64,' + b64, detail:'low'}}
+    ]}],
+    stream: false
+  };
+  var res = await fetch(AI_API, {
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer ' + key},
+    body: JSON.stringify(payload)
+  });
+  if(!res.ok){
+    var t = '';
+    try{ t = (await res.json()).error?.message || ''; }catch(e){}
+    if(res.status === 400 && /image|vision|model/i.test(t)){
+      /* 当前模型不支持图片 → 自动切到下一个候选重试 */
+      if(aiVisionModel < AI_VISION_MODELS.length - 1){
+        aiVisionModel++;
+        return aiDescribeMaterial(rec);
+      }
+      throw new Error('这个 API Key 的模型不支持识图，请在 DeepSeek 控制台确认已开通多模态');
+    }
+    if(res.status === 401) throw new Error('API Key 无效');
+    if(res.status === 402) throw new Error('账户余额不足');
+    if(res.status === 429) throw new Error('请求太频繁，稍后再试');
+    throw new Error('识图失败 ' + res.status + (t ? '：' + t.slice(0,60) : ''));
+  }
+  var j = await res.json();
+  var out = (j.choices?.[0]?.message?.content || '').trim();
+  /* 清掉模型可能加的引号/序号/换行 */
+  out = out.replace(/^["'「『]|["'」』]$/g, '').replace(/^\d+[\.、]\s*/, '').split('\n')[0].trim();
+  if(!out) throw new Error('模型没返回描述');
+  return out.slice(0, 60);
+}
+function blobToBase64(blob){
+  return new Promise(function(res, rej){
+    var fr = new FileReader();
+    fr.onload = function(){
+      var s = String(fr.result || '');
+      res(s.slice(s.indexOf(',') + 1));
+    };
+    fr.onerror = function(){ rej(new Error('读取图片失败')); };
+    fr.readAsDataURL(blob);
+  });
+}
+/* 批量给没有描述的素材补说明 */
+function aiDescribeAll(){
+  var targets = matList.filter(function(m){ return !(m.tags && m.tags.trim()); });
+  if(!targets.length){ toast('所有素材都已有说明'); return; }
+  if(!aiGetKey()){ toast('先填 API Key'); $('foldAI').classList.add('open'); $('inAiKey').focus(); return; }
+  aiVisionBusy = true;
+  matRenderList();
+  toast('AI 正在看 ' + targets.length + ' 张图…');
+  var chain = Promise.resolve(), okN = 0;
+  targets.forEach(function(m){
+    chain = chain.then(function(){
+      return aiDescribeMaterial(m).then(function(desc){
+        m.tags = desc;
+        return matPut(m).then(function(){ okN++; });
+      }).catch(function(err){
+        m.tags = '';
+        return null;
+      }).then(function(){
+        if(aiVisionBusy) matRenderList();
+      });
+    });
+  });
+  chain.then(function(){
+    aiVisionBusy = false;
+    matRenderList(); aiRefreshImgHint();
+    if(okN) toast('AI 已为 ' + okN + ' 张素材写好说明');
+    else toast('识图失败，请确认 API Key 支持多模态');
+  });
 }
 
 var AI_STYLE_DESC = {
@@ -3667,6 +3775,14 @@ function matRenderList(){
   $('matUsage').textContent = matList.length
     ? matList.length + ' 张素材 · 占用 ' + matUsageText() + ' · 存在本机浏览器（IndexedDB），关掉页面也不会丢'
     : '还没有素材。素材存在 IndexedDB（配额约 10GB），关掉页面也不会丢。';
+  if(aiVisionBusy){
+    $('btnMatTags').disabled = true;
+    $('btnMatTags').textContent = 'AI 看图中…';
+  }else{
+    var noTag = matList.filter(function(m){ return !(m.tags && m.tags.trim()); }).length;
+    $('btnMatTags').disabled = matList.length === 0;
+    $('btnMatTags').textContent = noTag ? '✨ AI 写说明（' + noTag + '）' : '✨ AI 重写说明';
+  }
   if(!matList.length){ box.innerHTML = ''; return; }
   var html = '';
   for(var i=0;i<matList.length;i++){
@@ -3675,7 +3791,9 @@ function matRenderList(){
       + '<img class="mat-thumb" src="' + m.url + '" alt="">'
       + '<div class="mat-meta">'
       + '<input type="text" class="mat-name" value="' + escapeHtml(m.name) + '" maxlength="24" placeholder="素材名">'
-      + '<input type="text" class="mat-tags" value="' + escapeHtml(m.tags||'') + '" maxlength="60" placeholder="描述：画面内容、氛围、适合什么场景">'
+      + '<input type="text" class="mat-tags" value="' + escapeHtml(m.tags||'') + '" maxlength="60" ' +
+        (aiVisionBusy && !(m.tags&&m.tags.trim()) ? 'placeholder="AI 正在看这张图…" ' : 'placeholder="描述：画面内容、氛围、适合什么场景" ') +
+        '>'
       + '<div class="mat-sub">第 ' + (i+1) + ' 张 · ' + m.w + '×' + m.h + ' · ' + Math.round(m.size/1024) + 'KB'
       + (m.type === 'image/png' ? ' · 透明' : '') + '</div>'
       + '</div>'
@@ -3729,6 +3847,7 @@ $('matList').addEventListener('change', function(e){
   toast('说明已保存，AI 下次会参考');
 });
 $('btnMatAdd').addEventListener('click', function(){ $('fileMat').click(); });
+$('btnMatTags').addEventListener('click', function(){ aiDescribeAll(); });
 $('fileMat').addEventListener('change', function(){
   var files = Array.prototype.slice.call(this.files || []);
   this.value = '';
@@ -3747,7 +3866,15 @@ $('fileMat').addEventListener('change', function(){
   });
   chain.then(function(){
     matRenderList(); aiRefreshImgHint(); scheduleRender(60);
-    if(okN) toast('已添加 ' + okN + ' 张素材 · 给它们写上描述，AI 才选得准');
+    if(okN){
+      toast('已添加 ' + okN + ' 张素材');
+      /* 默认自动识图：用户只管丢图，说明交给 AI 写 */
+      if($('ckMatAutoTag').checked && aiGetKey() && !aiVisionBusy){
+        aiDescribeAll();
+      }else if(!aiGetKey()){
+        toast('填了 API Key 后可让 AI 自动写说明');
+      }
+    }
   });
 });
 $('btnMatExport').addEventListener('click', function(){
