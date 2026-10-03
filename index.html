@@ -936,13 +936,67 @@ function computeSlices(L){
     if(cur.length > 0 || groups.length === 0) groups.push(cur);
   }else{
     var maxH = sliceHeightLimit(L) || 8400;
-    var cur2 = [], used = 0;
+    var raw = [], cur2 = [], used = 0;
     for(var j=0;j<L.bodyLines.length;j++){
       var l2 = L.bodyLines[j];
-      if(cur2.length > 0 && used + l2.h > maxH){ groups.push(cur2); cur2 = []; used = 0; }
+      if(cur2.length > 0 && used + l2.h > maxH){ raw.push(cur2); cur2 = []; used = 0; }
       cur2.push(l2); used += l2.h + l2.gapAfter;
     }
-    if(cur2.length > 0 || groups.length === 0) groups.push(cur2);
+    if(cur2.length > 0 || raw.length === 0) raw.push(cur2);
+
+    /* 尾部再平衡：顺序切会让最后一张只剩几行（用户反馈「最后一张字数总是很少」）。
+       这里从后往前反复扫描：只要某张明显比前一张矮，就把前一张的尾部匀过来。
+       用「相对最矮邻居」判断，能同时处理中间张偏矮的情况。 */
+    function grpH(g){ var s = 0; for(var z=0;z<g.length;z++) s += g[z].h + g[z].gapAfter; return s; }
+    function splitAt(g, ratio){
+      var total = grpH(g), target = total * ratio, acc = 0;
+      for(var z=g.length-1; z>=0; z--){
+        acc += g[z].h + g[z].gapAfter;
+        if(acc >= target) return z;
+      }
+      return -1;
+    }
+    var MIN_RATIO = 0.62;
+    for(var pass=0; pass<raw.length; pass++){
+      var changed = false;
+      for(var t=raw.length-1; t>=1; t--){
+        var hNow = grpH(raw[t]), hPrev = grpH(raw[t-1]);
+        if(hPrev <= 0) continue;
+        if(hNow < hPrev * MIN_RATIO){
+          var cAt = splitAt(raw[t-1], 0.5);
+          /* 切点必须落在中间：不能把前一张切空，也不能一点都不动 */
+          if(cAt > 0 && cAt < raw[t-1].length - 1){
+            var mv = raw[t-1].splice(cAt + 1);
+            raw[t-1] = raw[t-1].slice(0, cAt + 1);
+            raw[t] = mv.concat(raw[t]);
+            changed = true;
+          }
+        }
+      }
+      if(!changed) break;
+    }
+    /* 兜底：清掉可能被切空的组 */
+    raw = raw.filter(function(g){ return g.length > 0; });
+    if(raw.length === 0) raw = [[]];
+    /* 保险：均分后若某张明显超长（切分把行挪过去了），再按 maxH 硬切一刀，
+       否则会出现「本该 3 张变 2 张、且单张过大接近画布上限」的情况。
+       切完不再做平衡 —— 宁可稍微不均匀，也不要单张超限。 */
+    var HARD = maxH * 1.35;
+    var needSplit = false;
+    for(var q3=0;q3<raw.length;q3++){ if(grpH(raw[q3]) > HARD){ needSplit = true; break; } }
+    if(needSplit){
+      var fixed = [];
+      for(var q4=0;q4<raw.length;q4++){
+        var g4 = raw[q4], acc4 = 0, buf4 = [];
+        for(var q5=0;q5<g4.length;q5++){
+          if(buf4.length > 0 && acc4 + g4[q5].h > maxH){ fixed.push(buf4); buf4 = []; acc4 = 0; }
+          buf4.push(g4[q5]); acc4 += g4[q5].h + g4[q5].gapAfter;
+        }
+        if(buf4.length) fixed.push(buf4);
+      }
+      raw = fixed;
+    }
+    groups = raw;
   }
 
   var cum = 0;
@@ -1476,21 +1530,91 @@ function dosDateTime(d){
   return {time: time & 0xFFFF, date: date & 0xFFFF};
 }
 /* files: [{name, blob}]  →  Blob(zip) */
+/* 异步 ZIP 流式生成器（自己画图，边画边写字节）。
+   为什么必须流式：8 张 1080×10000 的 PNG 若同时压在内存里 ≈ 350MB，
+   手机直接 OOM —— 表现为 zip 大小 0.0MB / 解压提示文件损坏。
+   这里每张图画完立刻转字节、塞进 zip、丢引用，内存峰值只压 1 张。 */
+async function* buildZipStreamFromSlices(L, slices, onProgress){
+  var enc = new TextEncoder();
+  var now = new Date(), dt = dosDateTime(now);
+  var centrals = [], offset = 0, total = slices.length;
+  for(var i=0;i<total;i++){
+    if(onProgress) onProgress('正在生成第 ' + (i+1) + ' / ' + total + ' 张…', (i+1)/total);
+    var blob = await buildSliceBlob(L, slices[i], total);
+    var data = new Uint8Array(await blob.arrayBuffer());
+    /* blob 用完立刻扔 */
+    blob = null;
+    var nameBytes = enc.encode(fileName(i+1));
+    var crc = crc32(data);
+    var lh = new Uint8Array(30 + nameBytes.length);
+    var lv = new DataView(lh.buffer);
+    lv.setUint32(0, 0x04034b50, true);
+    lv.setUint16(4, 20, true);
+    lv.setUint16(6, 0x0800, true);
+    lv.setUint16(8, 0, true);
+    lv.setUint16(10, dt.time, true);
+    lv.setUint16(12, dt.date, true);
+    lv.setUint32(14, crc, true);
+    lv.setUint32(18, data.length, true);
+    lv.setUint32(22, data.length, true);
+    lv.setUint16(26, nameBytes.length, true);
+    lv.setUint16(28, 0, true);
+    lh.set(nameBytes, 30);
+    var ch = new Uint8Array(46 + nameBytes.length);
+    var cv = new DataView(ch.buffer);
+    cv.setUint32(0, 0x02014b50, true);
+    cv.setUint16(4, 20, true);
+    cv.setUint16(6, 20, true);
+    cv.setUint16(8, 0x0800, true);
+    cv.setUint16(10, 0, true);
+    cv.setUint16(12, dt.time, true);
+    cv.setUint16(14, dt.date, true);
+    cv.setUint32(16, crc, true);
+    cv.setUint32(20, data.length, true);
+    cv.setUint32(24, data.length, true);
+    cv.setUint16(28, nameBytes.length, true);
+    cv.setUint16(30, 0, true); cv.setUint16(32, 0, true);
+    cv.setUint16(34, 0, true); cv.setUint16(36, 0, true);
+    cv.setUint32(38, 0, true);
+    cv.setUint32(42, offset, true);
+    ch.set(nameBytes, 46);
+    centrals.push(ch);
+    var payload = new Uint8Array(lh.length + data.length);
+    payload.set(lh, 0);
+    payload.set(data, lh.length);
+    var myOffset = offset;
+    offset += payload.length;
+    yield {chunk: payload, index: i, total: total, offset: myOffset};
+    /* yield 之后调用方会继续循环，这里清引用帮 GC 回收这一张的内存 */
+    data = null; payload = null; lh = null;
+    await sleep(0);
+  }
+  var cdSize = 0;
+  for(var c2=0;c2<centrals.length;c2++) cdSize += centrals[c2].length;
+  var eocd = new Uint8Array(22);
+  var ev2 = new DataView(eocd.buffer);
+  ev2.setUint32(0, 0x06054b50, true);
+  ev2.setUint16(8, total, true);
+  ev2.setUint16(10, total, true);
+  ev2.setUint32(12, cdSize, true);
+  ev2.setUint32(16, offset, true);
+  yield {eocd: eocd, centrals: centrals};
+}
+/* 同步版（保留给测试与小图场景）。files 用 {name, data:Uint8Array} */
 function buildZip(files){
   var enc = new TextEncoder();
   var now = new Date(), dt = dosDateTime(now);
   var locals = [], centrals = [], offset = 0;
   files.forEach(function(f){
-    var data = new Uint8Array(f.data);
+    var data = f.data instanceof Uint8Array ? f.data : new Uint8Array(f.data);
     var nameBytes = enc.encode(f.name);
     var crc = crc32(data);
-    /* local file header */
     var lh = new Uint8Array(30 + nameBytes.length);
     var lv = new DataView(lh.buffer);
     lv.setUint32(0, 0x04034b50, true);
-    lv.setUint16(4, 20, true);          /* version needed */
-    lv.setUint16(6, 0x0800, true);      /* flag: UTF-8 文件名 */
-    lv.setUint16(8, 0, true);           /* method: store */
+    lv.setUint16(4, 20, true);
+    lv.setUint16(6, 0x0800, true);
+    lv.setUint16(8, 0, true);
     lv.setUint16(10, dt.time, true);
     lv.setUint16(12, dt.date, true);
     lv.setUint32(14, crc, true);
@@ -1500,7 +1624,6 @@ function buildZip(files){
     lv.setUint16(28, 0, true);
     lh.set(nameBytes, 30);
     locals.push(lh, data);
-    /* central directory record */
     var ch = new Uint8Array(46 + nameBytes.length);
     var cv = new DataView(ch.buffer);
     cv.setUint32(0, 0x02014b50, true);
@@ -1565,27 +1688,41 @@ async function exportOne(index, mode){
     if(!(err && err.name === 'AbortError')) toast('失败：' + (err.message || err));
   }finally{ busy = false; ovHide(); updateStats(curLayout); }
 }
-/* 主路径：打包成一个 zip。只派发一次下载，根治「每张存两遍」 */
+/* 主路径：流式打包成一个 zip。只派发一次下载，根治「每张存两遍」。
+   关键：zip 生成器自己负责画图并立即写字节，每张写完就丢引用；
+   内存峰值只压 1 张，而不是全部 8 张（后者在手机上 OOM → zip 显示 0.0MB）。 */
 $('btnSaveAll').addEventListener('click', async function(){
   if(busy || !curLayout) return;
   busy = true; updateStats(curLayout);
   var slices = curSlices, L = curLayout, total = slices.length;
-  ovShow('正在生成 1 / ' + total + ' 张…'); ovBar(0);
+  ovShow('准备中…'); ovBar(0);
   try{
-    var entries = [];
-    for(var i=0;i<total;i++){
-      $('ovText').textContent = '正在生成 ' + (i+1) + ' / ' + total + ' 张…'; ovBar(i/total*0.9);
-      var blob = await buildSliceBlob(L, slices[i], total);
-      entries.push({name: fileName(i+1), data: blob});
-      /* 让出主线程，避免大图连续生成时界面卡死 */
-      if(i % 2 === 1) await sleep(0);
+    var parts = [];
+    var stream = buildZipStreamFromSlices(L, slices, function(msg, pct){
+      $('ovText').textContent = msg; ovBar(pct * 0.95);
+    });
+    var step;
+    while(!(step = await stream.next()).done){
+      var v = step.value;
+      if(v.chunk){
+        parts.push(v.chunk);
+        await sleep(0);                      /* 让出主线程，避免连续画大图卡死 */
+      }else{
+        for(var c=0;c<v.centrals.length;c++) parts.push(v.centrals[c]);
+        parts.push(v.eocd);
+      }
     }
-    ovBar(0.95);
-    $('ovText').textContent = '正在打包…';
-    var zipBlob = buildZip(entries);
+    ovBar(0.98);
+    $('ovText').textContent = '正在写出文件…';
+    /* Blob 接受 Uint8Array 分片，按需惰性拼接，不产生额外完整拷贝 */
+    var zipBlob = new Blob(parts, {type:'application/zip'});
+    parts = null;
+    if(!zipBlob.size){
+      throw new Error('打包结果为空（内存不足，请把每张高度调小，或改用「逐张保存」）');
+    }
     triggerDownload(zipBlob, baseName() + '.zip');
     ovBar(1);
-    toast('已打包下载 ' + total + ' 张（zip 里各一张，不会重复）');
+    toast('已打包 ' + total + ' 张 · ' + (zipBlob.size/1048576).toFixed(1) + 'MB（解压后各一张）');
   }catch(err){
     toast('失败：' + (err.message || err));
   }
@@ -1864,6 +2001,13 @@ function aiApplyFit(fit){
   var applied = [];
   /* 先套 preset 拿到默认值，再用模型给的具体值覆盖 */
   if(fit.preset && PRESETS[fit.preset]){ applyPresetTo(st, fit.preset); }
+  /* 旧格式的 template（配色模板 id）：新版改用 bg/text/title 三色，
+     但仍兼容旧字段，否则模型偶尔按老格式输出时配色会丢 */
+  if(fit.template && TEMPLATES.some(function(t){ return t.id === fit.template; }) && !fit.bg && !fit.text && !fit.title){
+    var tpl = TEMPLATES.filter(function(x){ return x.id === fit.template; })[0];
+    st.tpl = tpl.id;
+    st.c = {bg: tpl.bg, text: tpl.text, title: tpl.title};
+  }
 
   if(fit.font && FONT_DEFS[fit.font]){ st.font = fit.font; applied.push('字体'); }
   if(fit.titleSize !== undefined){
