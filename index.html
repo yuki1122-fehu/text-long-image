@@ -44,11 +44,24 @@ header .stats{font-size:12px; color:var(--tx2); white-space:nowrap;}
 }
 #pvTip.show{display:block;}
 .empty-hint{color:var(--tx2); font-size:13px; text-align:center; margin-top:40px; line-height:2;}
-#sheet{flex:none; background:var(--panel); border-top:1px solid var(--line); border-radius:16px 16px 0 0; overflow:hidden;}
+/* sheet 用 grid 明确分配行高：tabs 固定，面板占剩余。
+   之前用 flex 叠 flex（.panel flex:1）在嵌套 flex 容器里高度计算不可靠，
+   表现为「切到版式/导出面板高度为 0、内容被 overflow:hidden 裁掉」。 */
+#sheet{
+  flex:0 0 auto; height:52dvh; min-height:240px; max-height:62dvh;
+  display:grid; grid-template-rows:auto minmax(0,1fr);
+  background:var(--panel); border-top:1px solid var(--line);
+  border-radius:16px 16px 0 0; overflow:hidden;
+}
 #tabs{display:flex; border-bottom:1px solid var(--line);}
 #tabs button{flex:1; padding:11px 0 9px; background:none; border:none; color:var(--tx2); font-size:13px; font-weight:600; border-bottom:2px solid transparent; cursor:pointer;}
 #tabs button.on{color:var(--acc); border-bottom-color:var(--acc);}
-.panel{display:none; padding:12px 16px calc(env(safe-area-inset-bottom) + 14px); max-height:47dvh; overflow:auto;}
+/* 面板在 grid 里占第二行，自己滚动。这里不用 flex:1（grid 行已分配高度）。 */
+.panel{
+  display:none; min-height:0;
+  padding:12px 16px calc(env(safe-area-inset-bottom) + 14px);
+  overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
+}
 .panel.on{display:block;}
 .row{margin:12px 0 0;}
 .row:first-child{margin-top:2px;}
@@ -250,8 +263,9 @@ input[type=password]:focus{border-color:var(--acc);}
           </div>
         <div class="note">说明就是给 AI 看的：写清画面主体、情绪、适合什么场景，AI 才选得准。没写也没关系，点「✨ AI 写说明」让它看图自动写。</div>
         <div id="matList" class="slice-list"></div>
+        </div><!-- /paneMine -->
       </div>
-    </div>
+    </div><!-- /fold-body -->
     <div class="fold" id="foldAI">
       <div class="fold-h"><span>✨ AI 智能排版</span><span class="arw">›</span></div>
       <div class="fold-body">
@@ -2180,38 +2194,49 @@ function drawSliceCanvas(L, slice, total, bgImg){
 
 /* ================= 预览 ================= */
 var PV_W = 720, PV_MAX_H = 12000;
+/* 预览：与导出走完全相同的图层顺序。
+   之前这里只画了 drawDoc，导致预览永远是纯文字 —— 装饰层（剪影/肌理/暗纹/
+   水印/装饰条）和 AI 插图全都看不到，用户以为「排版没生效 / 很普通」。
+   现在复用 drawSliceCanvas 的同一套图层，所见即所得。 */
 function drawPreview(L){
   var pv = $('pv');
   var padT = Math.max(24, Math.round(st.margin*0.7));
   var padB = Math.max(28, Math.round(st.margin*0.85));
   if(st.footer === 'rule') padB += Math.round(st.bodySize*1.2);
   else if(st.footer !== 'none') padB += Math.round(st.bodySize*0.6);
-  var fullH = padT + L.height + padB;
-  var scale = PV_W / L.width;
-  var H = Math.min(Math.round(fullH*scale), PV_MAX_H);
-  pv.width = PV_W; pv.height = Math.max(H, 40);
-  var x = pv.getContext('2d');
-  x.setTransform(scale, 0, 0, scale, 0, 0);
-  x.fillStyle = st.c.bg; x.fillRect(0, 0, L.width, H/scale);
-  x.textBaseline = 'middle'; x.textAlign = 'left';
   var hasContent = L.titleLines.length + L.bodyLines.length > 0;
   $('emptyHint').style.display = hasContent ? 'none' : 'block';
   pv.style.display = hasContent ? 'block' : 'none';
-  if(!hasContent){ $('pvTip').classList.remove('show'); return; }
-  if(st.bgImg){
-    drawBackground(x, L, {h:H/scale, offset:0, padT:padT, padB:padB}, bgState.img);
+  if(!hasContent){
+    $('pvTip').classList.remove('show');
+    var ec = pv.getContext('2d');
+    pv.width = PV_W; pv.height = 40;
+    ec.fillStyle = st.c.bg; ec.fillRect(0,0,PV_W,40);
+    return;
   }
-  if(st.rule === 'leftbar'){
-    x.save(); x.globalAlpha = 0.45; x.fillStyle = mutedColor();
-    x.fillRect(Math.round(st.margin*0.55), padT*0.6, Math.max(2, Math.round(1.8*st.width/1080)),
-               (H/scale) - padT*0.6 - padB*0.6);
-    x.restore();
-  }
-  drawDoc(x, L, {title:true, lines:L.bodyLines}, padT);
-  drawSideTitle(x, L, padT, H/scale - padB);
+  var fullH = padT + L.height + padB;
+  var scale = PV_W / L.width;
+  var H = Math.min(Math.round(fullH*scale), PV_MAX_H);
+
+  /* 用「首张切片」的绘制管线渲染，天然包含所有装饰图层与插图 */
+  var sl = computeSlices(L);
+  var head = sl[0] || {idx:1, lines:L.bodyLines, padT:padT, padB:padB, withTitle:true, h:H/scale, offset:0};
+  /* 预览只画首屏高度：把 head 的行裁到能装下的范围，避免超长画布 */
+  var capH = H / scale;
+  var limited = {idx:head.idx, padT:head.padT, padB:head.padB, withTitle:head.withTitle,
+                 h:capH, offset:0, lines:head.lines};
+
+  var cv = drawSliceCanvas(L, limited, sl.length || 1, bgState.img);
+  /* 把画布内容贴回 <canvas>（按 PV_W 宽缩放） */
+  pv.width = PV_W; pv.height = Math.max(40, Math.min(Math.round(capH*scale), PV_MAX_H));
+  var x = pv.getContext('2d');
+  x.fillStyle = st.c.bg; x.fillRect(0, 0, pv.width, pv.height);
+  var dh = Math.min(cv.height, Math.round(pv.height / scale));
+  x.drawImage(cv, 0, 0, cv.width, dh, 0, 0, pv.width, Math.round(dh*scale));
+
   var tip = $('pvTip');
   if(fullH*scale > H + 1){
-    tip.textContent = '预览只显示前一段，导出会完整生成 ' + computeSlices(L).length + ' 张 ↓';
+    tip.textContent = '预览只显示前一段，导出会完整生成 ' + (sl.length || 1) + ' 张 ↓';
     tip.classList.add('show');
   }else tip.classList.remove('show');
 }
@@ -2915,20 +2940,22 @@ function aiImgPrompt(mats){
   if(!mats || !mats.length) return '';
   var lines = [
 '',
-'【素材库】用户提供了 ' + mats.length + ' 张贴图素材，正文中用 IMG:N 标记插图位置（N 是编号，从 1 开始）：'
+'【素材库】用户提供了 ' + mats.length + ' 张贴图素材。请在正文中用 IMG:N 标记插图位置（N 是编号，从 1 开始）：'
   ];
   mats.forEach(function(m, i){
     var desc = (m.tags || '').trim();
-    var kind = m.type === 'image/png' ? '（透明背景）' : '';
+    var kind = m.type === 'image/png' ? '（透明底）' : '';
     lines.push('  IMG:' + (i+1) + ' → ' + m.name + kind + (desc ? ' ｜ ' + desc : ' ｜ （无描述）'));
   });
   lines.push('');
-  lines.push('  请先读一遍上面的素材说明，再决定用哪几张：');
-  lines.push('    - 挑素材要看描述与当前这段文字的语境是否吻合，不要随便按编号顺序取');
-  lines.push('    - 同一张素材不要重复使用');
-  lines.push('    - 最多插 2~3 处。找不到贴合的素材就一张都不插，宁缺毋滥');
-  lines.push('    - 插图要放在需要「视觉呼吸」的位置（章节开头、情绪转折后、结尾前），不要打断连贯的段落');
-  lines.push('  插图标记单独占一行。');
+  lines.push('  怎么用：');
+  lines.push('    1) 先读一遍上面的说明，找出与「这段文字的题材和情绪」最贴合的 1~3 张');
+  lines.push('    2) 在合适的段落之间插一行 IMG:N（单独占行），插图会整幅排进长图');
+  lines.push('    3) 同一张不要重复用；插图不要打断连贯的段落');
+  lines.push('');
+  lines.push('  ⚠️ 重要：用户是特意准备好这些素材让你用的。绝大多数文章都能找到合适的搭配，');
+  lines.push('     请务必至少插入 1 处。只有在素材与内容确实毫无关联时才一张都不插。');
+  lines.push('     如果不确定选哪张，就选描述里情绪最接近的那张（例如写雪景就选雪/冷色，写离别就选鸟/羽毛）。');
   return lines.join('\n');
 }
 
@@ -4184,6 +4211,10 @@ async function aiRun(mode){
     if(!styleOnly){
       var imgs = aiCountImg(st.body);
       if(useImg && imgs) msg += ' · 插入 ' + imgs + ' 张配图';
+      /* 勾了配图却一张没插，必须说出来 —— 否则用户只看到「排版完成」，
+         以为插图生效了（实际是 AI 没选），无从判断问题在哪。 */
+      if(useImg && !imgs) msg += ' · ⚠️ 本次没插配图（AI 没找到贴合的，可再点一次或换风格）';
+      if(!useImg && matList.length) msg += ' · 未勾选配图';
     }
     /* 排式速览：把这次的关键选择直接说出来，方便和上一次对比、判断要不要重掷。
        这是解决「看起来都差不多」的关键 —— 用户得能看见 AI 到底改了什么。 */
