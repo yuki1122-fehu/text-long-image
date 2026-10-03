@@ -280,6 +280,100 @@ input[type=password]:focus{border-color:var(--acc);}
         <div class="row"><div class="lab"><b>底色蒙版（压暗保字可读）</b><span class="val" id="vBgShade"></span></div>
           <input type="range" data-key="bgShade" min="0" max="90" step="5"></div>
       </div>
+
+    <!-- 装帧装饰：多图层氛围版式 -->
+    <div class="fold" id="foldDeco" style="margin-top:14px">
+      <div class="fold-h"><span>🎨 装帧设计（多图层氛围版式）</span><span class="arw">›</span></div>
+      <div class="fold-body">
+        <div class="switch-row" style="padding:0 2px 8px">
+          <span><b>开启装帧</b><br><span style="font-size:11px;opacity:.75">叠加装饰图层，做成杂志/实体书内页质感</span></span>
+          <input type="checkbox" id="ckDecoFrame">
+        </div>
+        <div id="decoCtl" style="display:none">
+          <div class="row">
+            <div class="lab"><b>剪影贴图</b><span class="val">矢量绘制，可叠多个</span></div>
+            <div class="seg" data-deco="silhouette" style="flex:1;flex-wrap:wrap">
+              <button data-v="none">无</button>
+              <button data-v="lamb">羊</button>
+              <button data-v="tree">树</button>
+              <button data-v="mountain">山</button>
+              <button data-v="moon">月</button>
+              <button data-v="star">星</button>
+              <button data-v="flower">花</button>
+              <button data-v="bird">飞鸟</button>
+              <button data-v="feather">羽毛</button>
+              <button data-v="window">拱窗</button>
+            </div>
+          </div>
+          <div class="row"><div class="lab"><b>剪影数量</b><span class="val" id="vSilCount"></span></div>
+            <input type="range" data-deco="silhouetteCount" min="1" max="5" step="1"></div>
+
+          <div class="row">
+            <div class="lab"><b>暗纹底纹</b><span class="val">极淡的装饰纹理</span></div>
+            <div class="seg" data-deco="guilloche" style="flex:1;flex-wrap:wrap">
+              <button data-v="none">无</button>
+              <button data-v="arc">同心圆</button>
+              <button data-v="grid">网格</button>
+              <button data-v="wave">波纹</button>
+              <button data-v="ring">细密环</button>
+            </div>
+          </div>
+          <div class="row"><div class="lab"><b>暗纹浓度</b><span class="val" id="vGuilloche"></span></div>
+            <input type="range" data-deco="guillocheAlpha" min="2" max="30" step="1"></div>
+
+          <div class="row"><div class="lab"><b>肌理质感（纸张/印刷颗粒）</b><span class="val" id="vGrain"></span></div>
+            <input type="range" data-deco="grain" min="0" max="100" step="5"></div>
+
+          <div class="row">
+            <div class="lab"><b>装饰条</b><span class="val">横贯版面的色带</span></div>
+            <div class="seg" data-deco="bar" style="flex:1;flex-wrap:wrap">
+              <button data-v="none">无</button>
+              <button data-v="solid">实色块</button>
+              <button data-v="gradient">渐隐带</button>
+              <button data-v="rule">装订细线</button>
+              <button data-v="double">双线</button>
+              <button data-v="taper">书脊形</button>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="lab"><b>章节分割条</b><span class="val">小节标题下方</span></div>
+            <div class="seg" data-deco="divider" style="flex:1;flex-wrap:wrap">
+              <button data-v="none">无</button>
+              <button data-v="dots">三点</button>
+              <button data-v="diamond">菱形</button>
+              <button data-v="ornament">花饰</button>
+              <button data-v="leaf">枝叶</button>
+              <button data-v="line">细线</button>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="lab"><b>水印叠字</b><span class="val">巨大半透明字，压在正文下</span></div>
+            <input type="text" id="inWatermark" placeholder="如：哀歌 / MEMORIA" maxlength="12">
+          </div>
+          <div class="row"><div class="lab"><b>水印浓度</b><span class="val" id="vWmAlpha"></span></div>
+            <input type="range" data-deco="watermarkAlpha" min="4" max="40" step="2"></div>
+          <div class="row"><div class="lab"><b>水印大小</b><span class="val" id="vWmScale"></span></div>
+            <input type="range" data-deco="watermarkScale" min="12" max="60" step="2"></div>
+          <div class="switch-row"><span>水印加描边</span><input type="checkbox" id="ckWmOutline"></div>
+
+          <div class="row">
+            <div class="lab"><b>英文装饰副标</b><span class="val">衬线斜体，紧贴主标题</span></div>
+            <input type="text" id="inSubEn" placeholder="如：Death of a Lamb" maxlength="40">
+          </div>
+          <div class="row">
+            <div class="lab"><b>中文副标</b><span class="val">主标题下的小字</span></div>
+            <input type="text" id="inSubTitle" placeholder="如：灵魂的牧人" maxlength="24">
+          </div>
+          <div class="row">
+            <div class="lab"><b>竖排注解小字</b><span class="val">贴右侧竖排</span></div>
+            <input type="text" id="inSideNote" placeholder="如：壹 / 贰 / 叁" maxlength="20">
+          </div>
+          <div class="note">装帧是叠加在正文之上的图层，不会改变你的文字内容。关掉「开启装帧」即回到纯文字排版。</div>
+        </div>
+      </div>
+    </div>
       <div class="note">底图会按整份长图缩放后再切张，多张之间背景连续无缝；只存在本机，不上传。</div>
     </div>
 
@@ -490,8 +584,46 @@ var DEFAULTS = {
   width:1080, sliceMode:'height', sliceHeight:8400, sliceChars:1200, sliceCount:3,
   format:'png', repeatTitle:false,
   bgImg:'', bgMode:'cover', bgAlpha:100, bgShade:30,
-  customCss:'', customFam:''
+  customCss:'', customFam:'',
+  /* 装帧装饰：默认全部关闭（frame:false 即纯文字排版），由用户或 AI 开启 */
+  deco:{
+    frame:false,
+    subTitle:'',          /* 副标：主标题下方的小字 */
+    subTitleEn:'',        /* 英文装饰字（衬线斜体）*/
+    sideNote:'',          /* 竖排注解小字（贴右侧）*/
+    watermark:'',         /* 水印叠字（巨大半透明）*/
+    watermarkAlpha:16, watermarkScale:30, watermarkOutline:false,
+    silhouette:'none', silhouetteCount:3,
+    grain:0,              /* 肌理噪点强度 0~100 */
+    guilloche:'none', guillocheAlpha:8,
+    bar:'none',           /* 装饰条 */
+    divider:'none'        /* 章节分割条 */
+  }
 };
+/* 装饰枚举白名单：AI 只准从这些值里选，防止画出坏版 */
+var DECO_ENUM = {
+  silhouette: ['none','lamb','tree','mountain','moon','star','flower','bird','feather','window'],
+  guilloche: ['none','arc','grid','wave','ring'],
+  bar: ['none','solid','gradient','rule','double','taper'],
+  divider: ['none','dots','diamond','ornament','leaf','line']
+};
+function decoSanitize(d){
+  d = d || {};
+  var out = {};
+  if(DECO_ENUM.silhouette.indexOf(d.silhouette) >= 0) out.silhouette = d.silhouette;
+  if(DECO_ENUM.guilloche.indexOf(d.guilloche) >= 0) out.guilloche = d.guilloche;
+  if(DECO_ENUM.bar.indexOf(d.bar) >= 0) out.bar = d.bar;
+  if(DECO_ENUM.divider.indexOf(d.divider) >= 0) out.divider = d.divider;
+  ['subTitle','subTitleEn','sideNote','watermark'].forEach(function(k){
+    if(typeof d[k] === 'string' && d[k].length) out[k] = d[k].slice(0, 40);
+  });
+  ['grain','guillocheAlpha','watermarkAlpha','watermarkScale','silhouetteCount'].forEach(function(k){
+    if(d[k] !== undefined && isFinite(parseFloat(d[k]))) out[k] = parseFloat(d[k]);
+  });
+  if(typeof d.cover === 'boolean') out.cover = d.cover;
+  if(typeof d.watermarkOutline === 'boolean') out.watermarkOutline = d.watermarkOutline;
+  return out;
+}
 var st = loadSettings();
 var curLayout = null, curSlices = [], busy = false, webfontLinked = false;
 
@@ -507,6 +639,10 @@ function loadSettings(){
       for(var k in d){ if(k in s) d[k] = s[k]; }
       if(typeof d.c !== 'object' || !d.c) d.c = clone(DEFAULTS.c);
       for(var k2 in DEFAULTS.c){ if(!(k2 in d.c)) d.c[k2] = DEFAULTS.c[k2]; }
+      /* 装帧配置是后加的，老存档里没有 → 逐字段补默认值，
+         否则访问 st.deco.silhouette 这类会直接抛 undefined 错误。 */
+      if(typeof d.deco !== 'object' || !d.deco) d.deco = clone(DEFAULTS.deco);
+      for(var k3 in DEFAULTS.deco){ if(!(k3 in d.deco)) d.deco[k3] = DEFAULTS.deco[k3]; }
       if(s.badge !== undefined && d.footer === undefined) d.footer = s.badge ? 'corner' : 'none';
     }
   }catch(e){ fresh = true; }
@@ -796,6 +932,50 @@ function buildLayout(ctx){
       L.titleLines.push({type:'rule', span:'full', h:Math.round(st.titleSize*0.3), gapAfter:Math.round(st.titleSize*0.78)});
     }
   }
+  /* 装帧区：英文装饰副标 + 中文副标。
+     这两行是「主标题的附属」，排在标题线之后、正文之前。 */
+  if(st.deco.frame){
+    if(st.deco.subTitleEn && st.deco.subTitleEn.trim()){      var enSize = Math.max(16, Math.round(st.titleSize * 0.34));
+      var enFam = "'Georgia','Times New Roman','Songti SC',serif";
+      setFontX(ctx, enSize, enFam, 400, enSize * 0.10);
+      var enTxt = st.deco.subTitleEn.trim();
+      var enW = ctx.measureText(enTxt).width;
+      if(enW > avail * 0.96) enW = avail * 0.96;
+      L.titleLines.push({type:'enSub', text: enTxt, w: enW,
+        x: m + (avail - enW)/2, size: enSize,
+        h: Math.round(enSize * 1.5), gapAfter: Math.round(enSize * 0.5),
+        ls: enSize * 0.10});
+    }
+    if(st.deco.subTitle && st.deco.subTitle.trim()){
+      var sbSize = Math.max(15, Math.round(st.bodySize * 0.56));
+      var sbTxt = st.deco.subTitle.trim();
+      var sbRuns = parseInline(sbTxt);
+      var sbToks = tokenizeRuns(sbRuns);
+      var sbLayout = layoutPara(ctx, sbToks, {size: sbSize, family: fam, weight:400, avail: avail, ls: st.bodySize*0.16, runs: sbRuns});
+      for(var sb=0; sb<sbLayout.length; sb++){
+        L.titleLines.push({type:'text', text: sbLayout[sb].text, w: sbLayout[sb].w, toks: sbLayout[sb].toks, runs: sbRuns,
+          x: m + (avail - sbLayout[sb].w)/2,
+          size: sbSize, weight:400, color: mutedColor(),
+          h: Math.round(sbSize * 1.62), gapAfter: sb === sbLayout.length-1 ? Math.round(st.bodySize*0.5) : 0,
+          ls: st.bodySize*0.16, cc:0, pc:0, ps:false});
+      }
+    }
+  }
+
+  /* 装帧图形区：剪影 + 装饰条。
+     关键：作为「标题行」插进排版流，而不是浮在画布底层 ——
+     这样正文会自动排在它们下方，不会叠在身上（早先把它们画在底层时，
+     剪影只露出腿、装饰条横穿剪影腰，都是被正文覆盖造成的）。 */
+  if(st.deco.frame && st.deco.silhouette && st.deco.silhouette !== 'none'){
+    var silRowH = Math.round(Math.min(Math.max(120, st.bodySize * 3.0), 320));
+    L.titleLines.push({type:'silRow', h: silRowH, gapAfter: Math.round(st.bodySize*0.34),
+      count: Math.max(1, Math.min(5, st.deco.silhouetteCount || 3))});
+  }
+  if(st.deco.frame && st.deco.bar && st.deco.bar !== 'none'){
+    L.titleLines.push({type:'barRow', h: Math.round(st.bodySize * 0.9),
+      gapAfter: Math.round(st.bodySize*0.7)});
+  }
+
   L.titleH = L.titleLines.reduce(function(a,l){ return a + l.h + l.gapAfter; }, 0);
 
   /* 正文 */
@@ -883,6 +1063,13 @@ function buildLayout(ctx){
       L.bodyLines[firstIdx].drop = pendingDrop;
       dropPlaced = true;
     }
+    /* 小节标题（## / ###）下方追加装帧分割条，作为「章节」的视觉分界 */
+    if(st.deco.frame && st.deco.divider && st.deco.divider !== 'none'
+       && /^###?\s/.test(raw) && L.bodyLines.length > firstIdx){
+      var divH = Math.round(st.bodySize * 0.92);
+      L.bodyLines.push({type:'divider', h: divH, gapBefore: Math.round(st.bodySize*0.36),
+        gapAfter: Math.round(st.bodySize*0.42), cc:0, pc:0, ps:false});
+    }
     if(pendingShrink){
       pendingShrink.rows -= bls.length;
       if(pendingShrink.rows <= 0){ pendingShrink = null; pendingDrop = null; }
@@ -904,7 +1091,7 @@ function buildLayout(ctx){
         ls:st.ls, cc:0, pc:0, ps:false});
     }
   }
-  L.height = L.bodyLines.reduce(function(a,l){ return a + l.h + l.gapAfter; }, 0);
+  L.height = L.bodyLines.reduce(function(a,l){ return a + (l.gapBefore||0) + l.h + l.gapAfter; }, 0);
   L.docH = L.height + Math.max(24, Math.round(st.margin*0.7)) * 2;
   return L;
 }
@@ -943,18 +1130,20 @@ function computeSlices(L){
     for(var j=0;j<L.bodyLines.length;j++){
       var l2 = L.bodyLines[j];
       if(cur2.length > 0 && used + l2.h > maxH){ raw.push(cur2); cur2 = []; used = 0; }
-      cur2.push(l2); used += l2.h + l2.gapAfter;
+      /* gapBefore 也要计入，否则插图/分割条会与前一行重叠 */
+      used += (l2.gapBefore || 0) + l2.h + l2.gapAfter;
+      cur2.push(l2);
     }
     if(cur2.length > 0 || raw.length === 0) raw.push(cur2);
 
     /* 尾部再平衡：顺序切会让最后一张只剩几行（用户反馈「最后一张字数总是很少」）。
        这里从后往前反复扫描：只要某张明显比前一张矮，就把前一张的尾部匀过来。
        用「相对最矮邻居」判断，能同时处理中间张偏矮的情况。 */
-    function grpH(g){ var s = 0; for(var z=0;z<g.length;z++) s += g[z].h + g[z].gapAfter; return s; }
+    function grpH(g){ var s = 0; for(var z=0;z<g.length;z++) s += (g[z].gapBefore||0) + g[z].h + g[z].gapAfter; return s; }
     function splitAt(g, ratio){
       var total = grpH(g), target = total * ratio, acc = 0;
       for(var z=g.length-1; z>=0; z--){
-        acc += g[z].h + g[z].gapAfter;
+        acc += (g[z].gapBefore||0) + g[z].h + g[z].gapAfter;
         if(acc >= target) return z;
       }
       return -1;
@@ -1005,7 +1194,7 @@ function computeSlices(L){
   var cum = 0;
   return groups.map(function(g, gi){
     var inner = 0;
-    for(var j=0;j<g.length;j++) inner += g[j].h + (j < g.length-1 ? g[j].gapAfter : 0);
+    for(var j=0;j<g.length;j++) inner += (g[j].gapBefore||0) + g[j].h + (j < g.length-1 ? g[j].gapAfter : 0);
     var withTitle = (gi === 0 || st.repeatTitle) && L.titleH > 0;
     var h = Math.round(padT + (withTitle ? L.titleH : 0) + inner + padB);
     var s = {idx:gi+1, lines:g, padT:padT, padB:padB, withTitle:withTitle, h:h, offset:cum};
@@ -1017,6 +1206,19 @@ function computeSlices(L){
 /* ================= 绘制 ================= */
 /* 逐 token 富文本渲染：加粗 / 颜色 / 下划线 / 删除线 */
 function drawRichLine(ctx, ln, dy){
+  /* 英文装饰副标：衬线斜体 + 宽字距，做杂志英文小标题 */
+  if(ln.type === 'enSub'){
+    ctx.save();
+    setFontX(ctx, ln.size, "'Georgia','Times New Roman','Songti SC',serif", 400, ln.ls || 0);
+    ctx.fillStyle = mutedColor();
+    ctx.globalAlpha = 0.88;
+    ctx.font = 'italic 400 ' + ln.size + 'px ' + "'Georgia','Times New Roman','Songti SC',serif";
+    try{ ctx.letterSpacing = (ln.ls || 0) + 'px'; }catch(e){}
+    ctx.textAlign = 'left';
+    ctx.fillText(ln.text, ln.x, dy + ln.h/2);
+    ctx.restore();
+    return;
+  }
   var fam = fontStack();
   var runs = ln.runs || null;
   var toks = ln.toks;
@@ -1086,6 +1288,24 @@ function drawLine(ctx, ln, dy, W, m, avail){
     var ow = ctx.measureText(ln.sym).width;
     ctx.fillText(ln.sym, m + (avail-ow)/2, dy + ln.h*0.5);
     ctx.restore();
+    return;
+  }
+  if(ln.type === 'silRow'){
+    /* 剪影带：整行横向排布，位置由 drawLine 的 m/avail 决定 */
+    var n = ln.count || 1;
+    var sz = Math.min(ln.h * 0.46, (avail / n) * 0.42);
+    for(var si=0; si<n; si++){
+      var sx = (n === 1) ? (m + avail/2) : (m + avail * (si + 0.5) / n);
+      silhouette(ctx, sx, dy + ln.h * (si % 2 ? 0.60 : 0.50), sz, {flip: si % 2 === 1});
+    }
+    return;
+  }
+  if(ln.type === 'barRow'){
+    decoBar(ctx, 0, dy, W, {});
+    return;
+  }
+  if(ln.type === 'divider'){
+    sectionDivider(ctx, m, m + (avail)/2, dy + ln.h/2, avail, {});
     return;
   }
   if(ln.type === 'img'){
@@ -1161,6 +1381,7 @@ function drawDoc(ctx, L, parts, startY){
   var dy = startY;
   function seq(arr){
     for(var i=0;i<arr.length;i++){
+      dy += (arr[i].gapBefore || 0);
       drawLine(ctx, arr[i], dy, W, m, avail);
       dy += arr[i].h + (i === arr.length-1 ? 0 : arr[i].gapAfter);
     }
@@ -1259,23 +1480,423 @@ function drawBackground(ctx, L, slice, img){
     ctx.restore();
   }
 }
+/* ================= 装帧装饰图层 =================
+   设计目标：像独立杂志 / 实体书内页，而不是 Word 排版。
+   全部程序化生成（不依赖任何图片素材），六层叠加：
+     1. 肌理底纹  paperGrain  —— 噪点 + 纤维，营造纸张/印刷质感
+     2. 暗纹      guilloche    —— 同心弧线/网格，极低透明度，做底纹
+     3. 装饰条    decoBar      —— 横向色块/渐变带，压住版面
+     4. 剪影贴图  silhouette   —— 羊/树/山/月/星/花 等矢量剪影
+     5. 水印叠字  watermark    —— 巨大半透明字，压在正文之下
+     6. 引言块    pullQuote    —— 与正文不同的引言区块
+   所有颜色都从 st.c 推导，保证换配色后依然协调。 */
+
+/* --- 肌理底纹：噪点 + 横向纤维 + 暗角 --- */
+function paperGrain(ctx, W, H, opt){
+  opt = opt || {};
+  var strength = opt.strength != null ? opt.strength : (st.deco.grain || 0);
+  if(strength <= 0) return;
+  var s = strength / 100;
+  ctx.save();
+  /* 噪点：用离屏小点随机撒，避免逐像素太慢 */
+  var n = Math.round(W * H / 900 * s);
+  if(n > 26000) n = 26000;
+  var seed = opt.seed || 12345;
+  function rnd(){ seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
+  var dark = opt.dark || '#000000', light = opt.light || '#ffffff';
+  var isLightBg = opt.lightBg;
+  for(var i=0;i<n;i++){
+    var px = rnd() * W, py = rnd() * H;
+    var a = rnd() * 0.055 * s;
+    ctx.fillStyle = (rnd() > 0.5) === !!isLightBg ? light : dark;
+    ctx.globalAlpha = a;
+    ctx.fillRect(px, py, 1, 1);
+  }
+  /* 横向纤维：极淡的细线，模拟纸张纹理 */
+  ctx.globalAlpha = 0.035 * s;
+  ctx.strokeStyle = isLightBg ? '#000000' : '#ffffff';
+  ctx.lineWidth = 1;
+  var lines = Math.round(H / 5);
+  for(var k=0;k<lines;k++){
+    var y = rnd() * H;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y + (rnd() - 0.5) * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* --- 暗纹：同心弧 / 网格，极低透明度做底纹层次 --- */
+function guilloche(ctx, W, H, opt){
+  opt = opt || {};
+  var kind = opt.kind || st.deco.guilloche;
+  if(!kind || kind === 'none') return;
+  var strength = opt.strength != null ? opt.strength : (st.deco.guillocheAlpha || 0);
+  if(strength <= 0) return;
+  var col = opt.color || mutedColor();
+  ctx.save();
+  ctx.globalAlpha = Math.min(0.5, strength / 100) * 0.34;
+  ctx.strokeStyle = col;
+  ctx.lineWidth = Math.max(1, W / 1400);
+  var cx = W * (opt.cx != null ? opt.cx : 0.5);
+  var cy = H * (opt.cy != null ? opt.cy : 0.42);
+  if(kind === 'arc'){
+    /* 同心圆弧，像唱片/水波 */
+    var arcGap = Math.max(14, H / 90);
+    for(var r=arcGap; r<Math.max(W,H)*1.1; r+=arcGap){
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI*2);
+      ctx.stroke();
+    }
+  }else if(kind === 'grid'){    var gap2 = Math.max(16, W / 26);
+    ctx.globalAlpha *= 0.7;
+    for(var x=gap2; x<W; x+=gap2){
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+    }
+    for(var y=gap2; y<H; y+=gap2){
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    }
+  }else if(kind === 'wave'){
+    /* 正弦波纹，做水波/丝带感 */
+    var amp = H / 22, wl = W / 3.2;
+    for(var k2=0;k2<9;k2++){
+      ctx.beginPath();
+      var base = H * 0.12 + k2 * amp * 1.5;
+      for(var xx=0; xx<=W; xx+=6){
+        var yy = base + Math.sin(xx / wl * Math.PI * 2 + k2 * 0.6) * amp * 0.5;
+        if(xx === 0) ctx.moveTo(xx, yy); else ctx.lineTo(xx, yy);
+      }
+      ctx.stroke();
+    }
+  }else if(kind === 'ring'){
+    /* 放射线束：像装订线、光芒、印刷网线。刻意与 arc 区分开。 */
+    var cxr = W * 0.5, cyr = H * 0.30;
+    var rays = Math.max(24, Math.min(90, Math.round(W / 14)));
+    var len = Math.max(W, H) * 1.25;
+    for(var i2=0;i2<rays;i2++){
+      var ang = (i2 / rays) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(cxr + Math.cos(ang)*W*0.06, cyr + Math.sin(ang)*W*0.06);
+      ctx.lineTo(cxr + Math.cos(ang)*len, cyr + Math.sin(ang)*len);
+      ctx.stroke();
+    }
+    /* 中心加一圈细环，避免只有放射线显得空 */
+    ctx.beginPath(); ctx.arc(cxr, cyr, W * 0.10, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cxr, cyr, W * 0.15, 0, Math.PI*2); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* --- 装饰条：横向色块 / 渐变带 / 细线组合 --- */
+function decoBar(ctx, x0, y, w, opt){
+  opt = opt || {};
+  var kind = opt.kind || st.deco.bar || 'none';
+  if(!kind || kind === 'none') return;
+  var th = opt.th || Math.max(10, w * 0.028);
+  var col = opt.color || mutedColor();
+  var alpha = opt.alpha != null ? opt.alpha : 0.5;
+  ctx.save();
+  if(kind === 'solid'){
+    ctx.globalAlpha = alpha; ctx.fillStyle = col;
+    ctx.fillRect(x0, y, w, th);
+  }else if(kind === 'gradient'){
+    var g = ctx.createLinearGradient(x0, 0, x0 + w, 0);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(0.18, col);
+    g.addColorStop(0.5, col);
+    g.addColorStop(0.82, col);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.globalAlpha = alpha; ctx.fillStyle = g;
+    ctx.fillRect(x0, y, w, th);
+  }else if(kind === 'rule'){
+    /* 细线 + 端点方块，装订感 */
+    ctx.globalAlpha = alpha * 0.9; ctx.fillStyle = col;
+    ctx.fillRect(x0, y + th/2 - 1, w, 2);
+    var d = th * 0.7;
+    ctx.fillRect(x0, y + th/2 - d/2, d, d);
+    ctx.fillRect(x0 + w - d, y + th/2 - d/2, d, d);
+  }else if(kind === 'double'){
+    ctx.globalAlpha = alpha * 0.85; ctx.fillStyle = col;
+    ctx.fillRect(x0, y, w, Math.max(1, th*0.16));
+    ctx.fillRect(x0, y + th*0.52, w, Math.max(1, th*0.08));
+  }else if(kind === 'taper'){
+    /* 中间粗两端细，像书脊线 */
+    var g2 = ctx.createLinearGradient(x0, 0, x0 + w, 0);
+    g2.addColorStop(0, 'rgba(0,0,0,0)');
+    g2.addColorStop(0.5, col);
+    g2.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.globalAlpha = alpha; ctx.fillStyle = g2;
+    ctx.beginPath();
+    ctx.moveTo(x0, y + th/2);
+    ctx.lineTo(x0 + w*0.5, y);
+    ctx.lineTo(x0 + w, y + th/2);
+    ctx.lineTo(x0 + w*0.5, y + th);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+}
+
+/* --- 剪影贴图：全部用 Path2D 程序化绘制 --- */
+function silhouette(ctx, cx, cy, size, opt){
+  opt = opt || {};
+  var kind = opt.kind || st.deco.silhouette || 'none';
+  if(!kind || kind === 'none') return;
+  var col = opt.color || '#000000';
+  var alpha = opt.alpha != null ? opt.alpha : 0.14;
+  var flip = opt.flip ? -1 : 1;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = col;
+  ctx.translate(cx, cy);
+  ctx.scale(size * flip, size);
+  /* 统一在 -1..1 的坐标系里画，各元素按此比例 */
+  if(kind === 'lamb' || kind === 'sheep'){
+    /* 羊：身体 + 头 + 四腿 + 卷角 */
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 0.62, 0.34, -0.08, 0, Math.PI*2); ctx.fill();          // 身体
+    ctx.beginPath();
+    ctx.ellipse(0.55, -0.18, 0.20, 0.17, 0.2, 0, Math.PI*2); ctx.fill();    // 头
+    ctx.beginPath();
+    ctx.moveTo(0.66, -0.32); ctx.quadraticCurveTo(0.80, -0.42, 0.74, -0.24); // 角
+    ctx.quadraticCurveTo(0.84, -0.30, 0.70, -0.16); ctx.fill();
+    ctx.lineWidth = 0.10; ctx.strokeStyle = col; ctx.lineCap = 'round';
+    [[-0.34,-0.10],[-0.12,0.10],[0.20,0.12],[0.40,-0.06]].forEach(function(p){
+      ctx.beginPath(); ctx.moveTo(p[0], p[1]+0.18); ctx.lineTo(p[0]+0.03, p[1]+0.52); ctx.stroke();
+    });
+  }else if(kind === 'tree' || kind === 'branch'){
+    /* 树：树干 + 若干枝条 + 圆冠 */
+    ctx.beginPath();
+    ctx.moveTo(-0.06, 0.75); ctx.lineTo(0.06, 0.75); ctx.lineTo(0.04, -0.05); ctx.lineTo(-0.04, -0.05);
+    ctx.closePath(); ctx.fill();
+    ctx.lineWidth = 0.055; ctx.strokeStyle = col; ctx.lineCap = 'round';
+    var branches = [[-0.02,-0.05,-0.36,-0.30,0.16],[0.02,-0.05,0.34,-0.32,-0.14],[-0.01,-0.10,-0.20,-0.48,0.12],[0.01,-0.10,0.22,-0.50,-0.10]];
+    branches.forEach(function(b){
+      ctx.beginPath(); ctx.moveTo(b[0], b[1]);
+      ctx.quadraticCurveTo(b[2]*0.6 + b[4], b[3]*0.6, b[2], b[3]); ctx.stroke();
+      ctx.beginPath(); ctx.arc(b[2], b[3], 0.17, 0, Math.PI*2); ctx.fill();
+    });
+    ctx.beginPath(); ctx.arc(0, -0.62, 0.22, 0, Math.PI*2); ctx.fill();
+  }else if(kind === 'mountain' || kind === 'peak'){
+    /* 山：多重峦线 */
+    ctx.beginPath();
+    ctx.moveTo(-1, 0.62); ctx.lineTo(-0.42, -0.18); ctx.lineTo(-0.12, 0.10);
+    ctx.lineTo(0.22, -0.42); ctx.lineTo(0.56, 0.06); ctx.lineTo(0.80, -0.18);
+    ctx.lineTo(1, 0.62); ctx.closePath(); ctx.fill();
+  }else if(kind === 'moon' || kind === 'crescent'){
+    ctx.beginPath();
+    ctx.arc(0, 0, 0.72, Math.PI*0.32, Math.PI*1.68, false);
+    ctx.arc(0.30, -0.14, 0.62, Math.PI*1.62, Math.PI*0.38, true);
+    ctx.closePath(); ctx.fill();
+  }else if(kind === 'star' || kind === 'sparkle'){
+    /* 四角星 + 小星点 */
+    function star(x, y, r, thin){
+      ctx.beginPath();
+      ctx.moveTo(x, y - r); ctx.lineTo(x + r*thin, y); ctx.lineTo(x, y + r); ctx.lineTo(x - r*thin, y);
+      ctx.closePath(); ctx.fill();
+    }
+    star(0, 0, 0.86, 0.16);
+    star(-0.62, 0.46, 0.24, 0.18);
+    star(0.60, 0.52, 0.18, 0.18);
+  }else if(kind === 'flower' || kind === 'bloom'){
+    for(var p2=0;p2<6;p2++){
+      var a2 = p2 / 6 * Math.PI * 2;
+      ctx.beginPath();
+      ctx.ellipse(Math.cos(a2)*0.34, Math.sin(a2)*0.34, 0.30, 0.17, a2, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.beginPath(); ctx.arc(0, 0, 0.16, 0, Math.PI*2); ctx.fill();
+  }else if(kind === 'bird' || kind === 'flock'){
+    /* 飞鸟：几笔弧线 */
+    ctx.lineWidth = 0.07; ctx.strokeStyle = col; ctx.lineCap = 'round';
+    [[-0.6,0.10,0.30],[-0.05,-0.16,0.24],[0.42,0.04,0.19]].forEach(function(b){
+      ctx.beginPath();
+      ctx.moveTo(b[0]-b[2], b[1]); ctx.quadraticCurveTo(b[0], b[1]-b[2]*0.9, b[0], b[1]);
+      ctx.quadraticCurveTo(b[0], b[1]-b[2]*0.9, b[0]+b[2], b[1]);
+      ctx.stroke();
+    });
+  }else if(kind === 'feather' || kind === 'quill'){
+    ctx.beginPath();
+    ctx.moveTo(-0.7, 0.72); ctx.quadraticCurveTo(0.20, 0.10, 0.62, -0.68);
+    ctx.quadraticCurveTo(0.10, -0.10, -0.70, 0.72);
+    ctx.closePath(); ctx.fill();
+  }else if(kind === 'window' || kind === 'arch'){
+    /* 拱窗：哥特式窗洞轮廓 */
+    ctx.beginPath();
+    ctx.moveTo(-0.44, 0.70); ctx.lineTo(-0.44, -0.06);
+    ctx.quadraticCurveTo(0, -0.86, 0.44, -0.06);
+    ctx.lineTo(0.44, 0.70); ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+}
+
+/* --- 水印叠字：巨大半透明字，压在正文之下 --- */
+function watermark(ctx, W, H, opt){
+  opt = opt || {};
+  var text = (opt.text || st.deco.watermark || '').trim();
+  if(!text) return;
+  var size = opt.size || Math.max(90, W * (st.deco.watermarkScale || 0.30));
+  var alpha = opt.alpha != null ? opt.alpha : (st.deco.watermarkAlpha != null ? st.deco.watermarkAlpha / 100 : 0.10);
+  var rot = opt.rot != null ? opt.rot : -0.22;
+  /* 用「正文色再淡化」而不是 mutedColor()。
+     mutedColor() 本身就是正文与背景的中间色，浅底上等于几乎看不见；
+     水印要的是「能看出形状但不抢眼」，所以拿正文色压低透明度更准。 */
+  var col = opt.color || (st.c.text || mutedColor());
+  var cy = opt.cy != null ? opt.cy : H * 0.56;
+  ctx.save();
+  ctx.globalAlpha = Math.min(0.6, alpha);
+  ctx.fillStyle = col;
+  ctx.translate(W/2, cy);
+  ctx.rotate(rot);
+  setFontX(ctx, size, fontStack(), 700, 0);
+  ctx.textAlign = 'center';
+  /* 描边+填充双层，压得更像印刷水印 */
+  if(st.deco.watermarkOutline){
+    ctx.lineWidth = Math.max(1, size/120);
+    ctx.strokeStyle = ctx.fillStyle;
+    ctx.strokeText(text, 0, 0);
+  }
+  ctx.fillText(text, 0, 0);
+  ctx.restore();
+}
+
+/* --- 竖排装饰字（副标旁的注解小字）--- */
+function verticalNote(ctx, x, yTop, yBottom, text, opt){
+  opt = opt || {};
+  if(!text) return;
+  var chars = Array.from(text);
+  var size = opt.size || Math.max(16, st.bodySize * 0.62);
+  var adv = size * 1.32;
+  var need = size + adv * chars.length;
+  if(need > (yBottom - yTop)) return;      /* 放不下就不画，避免溢出 */
+  var fam = opt.family || "'Songti SC','STSong','Noto Serif SC',serif";
+  var col = opt.color || mutedColor();
+  ctx.save();
+  ctx.globalAlpha = opt.alpha != null ? opt.alpha : 0.68;
+  ctx.fillStyle = col;
+  setFontX(ctx, size, fam, 400, opt.ls != null ? opt.ls : size * 0.14);
+  ctx.textAlign = 'center';
+  var y = yTop + size;
+  for(var i=0;i<chars.length;i++){
+    ctx.fillText(chars[i], x, y);
+    y += adv;
+  }
+  ctx.restore();
+}
+
+/* --- 装饰分割条（章节之间用）--- */
+function sectionDivider(ctx, x0, cx, y, w, opt){
+  opt = opt || {};
+  var kind = opt.kind || st.deco.divider || 'none';
+  if(!kind || kind === 'none') return;
+  var col = opt.color || mutedColor();
+  var a = opt.alpha != null ? opt.alpha : 0.42;
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.strokeStyle = col; ctx.fillStyle = col;
+  var lw = Math.max(1, w / 900);
+  if(kind === 'dots'){
+    var n = 3, gap = w * 0.06;
+    var total = n * lw * 3 + (n-1) * gap;
+    for(var i=0;i<n;i++){
+      ctx.beginPath();
+      ctx.arc(cx - total/2 + lw*1.5 + i*(lw*3+gap), y, lw*1.5, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }else if(kind === 'diamond'){
+    var d = w * 0.018;
+    ctx.beginPath();
+    ctx.moveTo(cx, y - d); ctx.lineTo(cx + d, y); ctx.lineTo(cx, y + d); ctx.lineTo(cx - d, y);
+    ctx.closePath(); ctx.fill();
+    ctx.fillRect(cx - w*0.16, y - lw/2, w*0.11, lw);
+    ctx.fillRect(cx + w*0.05, y - lw/2, w*0.11, lw);
+  }else if(kind === 'ornament'){
+    /* 中间一个菱形 + 两侧渐隐细线 */
+    var d2 = w * 0.022;
+    ctx.lineWidth = lw;
+    var g = ctx.createLinearGradient(cx - w*0.3, 0, cx - w*0.05, 0);
+    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, col);
+    ctx.strokeStyle = g;
+    ctx.beginPath(); ctx.moveTo(cx - w*0.3, y); ctx.lineTo(cx - w*0.07, y); ctx.stroke();
+    var g2 = ctx.createLinearGradient(cx + w*0.05, 0, cx + w*0.3, 0);
+    g2.addColorStop(0, col); g2.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.strokeStyle = g2;
+    ctx.beginPath(); ctx.moveTo(cx + w*0.07, y); ctx.lineTo(cx + w*0.3, y); ctx.stroke();
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(cx, y - d2); ctx.lineTo(cx + d2*0.62, y); ctx.lineTo(cx, y + d2); ctx.lineTo(cx - d2*0.62, y);
+    ctx.closePath(); ctx.fill();
+  }else if(kind === 'leaf'){
+    /* 小枝叶 */
+    ctx.lineWidth = lw; ctx.strokeStyle = col; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(cx - w*0.2, y); ctx.quadraticCurveTo(cx, y + w*0.03, cx + w*0.2, y); ctx.stroke();
+    [[-0.12,1],[0,0.86],[0.12,1]].forEach(function(p){
+      ctx.beginPath();
+      ctx.ellipse(cx + w*p[0], y - w*0.012, w*0.026, w*0.011, -0.5, 0, Math.PI*2);
+      ctx.fill();
+    });
+  }else if(kind === 'line'){
+    ctx.lineWidth = lw;
+    ctx.beginPath(); ctx.moveTo(cx - w*0.34, y); ctx.lineTo(cx + w*0.34, y); ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function drawSliceCanvas(L, slice, total, bgImg){
   var c = document.createElement('canvas');
   c.width = L.width; c.height = slice.h;
   var x = c.getContext('2d');
-  x.fillStyle = st.c.bg; x.fillRect(0, 0, L.width, slice.h);
+  var W = L.width, H = slice.h;
+  var m = st.margin, avail = W - m*2;
+  /* 判断背景是深是浅，决定肌理用黑点还是白点 */
+  var bgLum = (function(hex){
+    var h = String(hex||'#000').replace('#','');
+    if(h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+    var r = parseInt(h.slice(0,2),16)||0, g = parseInt(h.slice(2,4),16)||0, b = parseInt(h.slice(4,6),16)||0;
+    return (0.299*r + 0.587*g + 0.114*b)/255;
+  })(st.c.bg);
+  var lightBg = bgLum > 0.5;
+
+  x.fillStyle = st.c.bg; x.fillRect(0, 0, W, H);
   x.textBaseline = 'middle'; x.textAlign = 'left';
+
+  /* ---- 图层 1：底图（用户上传）---- */
   drawBackground(x, L, slice, bgImg || null);
-  /* 侧栏竖线 */
+
+  /* ---- 图层 2：暗纹 guilloche ---- */
+  guilloche(x, W, H, { lightBg: lightBg });
+
+  /* ---- 图层 3：水印叠字（压在正文之下）---- */
+  if(st.deco.watermark && st.deco.watermark.trim()) watermark(x, W, H, {});
+
+  /* ---- 图层 4：肌理底纹（最上层背景质感，透明度极低不影响阅读）---- */
+  paperGrain(x, W, H, { lightBg: lightBg, seed: 1000 + slice.idx * 977 });
+
+  /* ---- 侧栏竖线 ---- */
   if(st.rule === 'leftbar'){
     x.save();
     x.globalAlpha = 0.45; x.fillStyle = mutedColor();
     var bx = Math.round(st.margin*0.55), bt = Math.max(2, Math.round(1.8*st.width/1080));
-    x.fillRect(bx, slice.padT*0.6, bt, slice.h - slice.padT*0.6 - slice.padB*0.6);
+    x.fillRect(bx, slice.padT*0.6, bt, H - slice.padT*0.6 - slice.padB*0.6);
     x.restore();
   }
+
+  /* 剪影与装饰条已作为「标题行」进入排版流（silRow / barRow），
+     由 drawLine 在正文之前绘制，这里不再重复画底层版本。 */
+
+  /* ---- 正文与装帧文字 ---- */
   drawDoc(x, L, {title:slice.withTitle, lines:slice.lines}, slice.padT);
-  drawSideTitle(x, L, slice.padT, slice.h - slice.padB);
+
+  /* ---- 图层 7：竖排注解小字（贴右侧，贯穿整张）---- */
+  if(st.deco.sideNote && st.deco.sideNote.trim() && !st.sideOn){
+    var noteX = W - m + Math.round(st.bodySize * 0.62);
+    verticalNote(x, noteX, slice.padT, H - slice.padB, st.deco.sideNote, {
+      color: mutedColor(), alpha: 0.55
+    });
+  }
+
+  /* ---- 侧题（原有的竖排大字）---- */
+  drawSideTitle(x, L, slice.padT, H - slice.padB);
   drawFooter(x, L, slice, total);
   return c;
 }
@@ -1879,6 +2500,32 @@ var AI_PROMPT = [
 '      也可以是「反衬」（沉重的文字配明亮底、克制的文字配浓重底），后者往往更有张力。',
 '      正文色和标题色要有细微差别（标题稍突出），但不要差到像两套模板。',
 '',
+'【装帧装饰层：让它像杂志内页，而不是 Word 排版】',
+'  只调字号颜色是不够的。请额外输出一段 <!--DECO:{...}--> JSON，给这套排版配上面向「实体书 / 独立杂志」的装饰图层。',
+'',
+'  DECO 可用字段（值都可以自己定，没有正确答案）：',
+'    silhouette(剪影贴图): none | lamb 羊 | tree 树 | mountain 山 | moon 月牙 | star 星芒 | flower 花 | bird 飞鸟 | feather 羽毛 | window 拱窗',
+'      —— 按内容意象选：羔羊/孤独→lamb，生长/回忆→tree，跋涉/远方→mountain，夜/思念→moon，希望/破碎→star，',
+'         温柔/女性→flower，自由/离开→bird，告别/书信→feather，教堂/宿命→window',
+'    silhouetteCount(剪影数量): 1~5。构图讲究的话 1~3 个就够，不要铺满',
+'    grain(肌理颗粒强度): 0~100。实体书印刷感的关键，纸质/复古题材给 30~60；极简风格给 0~20',
+'    guilloche(暗纹底纹): none | arc 同心圆 | grid 网格 | wave 波纹 | ring 细密环。极低透明度，做底纹层次',
+'    guillocheAlpha(暗纹浓度): 2~30。建议 6~14，再高就脏了',
+'    bar(装饰条): none | solid 实色块 | gradient 渐隐带 | rule 装订细线 | double 双线 | taper 书脊形',
+'    divider(章节分割条): none | dots 三点 | diamond 菱形 | ornament 花饰 | leaf 枝叶 | line 细线',
+'    watermark(水印叠字): 1~6 个字，巨大半透明压在正文之下',
+'      —— 适合放篇名、关键词、反复出现的意象词（例：哀歌 / 雪 / MEMORIA / 念）',
+'    watermarkAlpha(水印浓度): 4~40。克制一点，10~20 最合适',
+'    watermarkScale(水印大小): 12~60（占画面宽度的百分比）',
+'    subTitleEn(英文装饰副标): 短句或单词，如 Death of a Lamb / MEMORIA / Vol.I',
+'      —— 会以衬线斜体排在主标题正下方，是杂志感的关键',
+'    subTitle(中文副标): 4~8 字，补充主标题没说完的意思',
+'    sideNote(竖排注解小字): 4~10 字，会竖排贴在右侧边缘，例：靈魂的牧人 / 壹',
+'',
+'  ⚠️ 装帧的判断标准：一张图上除了文字，还应该「看得到别的东西」——',
+'     肌理、暗纹、剪影、色带至少开两三项，只靠字号颜色变化是不够的。',
+'     但也别全开满：装饰层的作用是托住文字，不能压过文字的可读性。',
+'',
 '【最后一句最重要】',
 '  这些参数没有「正确答案」，只有「和这段文字最匹配」的答案。',
 '  请务必根据正文内容做出你自己的判断，不要输出任何一组「放之四海皆准」的安全值。',
@@ -1907,6 +2554,22 @@ function aiBuildMessages(text, style, imgCount){
      1) 把当前正在用的排式告诉模型，并明确要求「换一套不同的」
         —— 否则模型会倾向输出和当前接近的方案，重掷几次看起来都一样。
      2) 只给正文「摘要 + 长度」而不是全文，省 token 也让模型专注于排式设计。 */
+/* 把当前装帧配置描述成一句话，给「换个排式」的提示词用（让模型知道要避开什么） */
+function DECO_SNAPSHOT(state){
+  var d = state.deco || {};
+  if(!d.frame) return '未开启装帧（纯文字排版）';
+  var parts = [];
+  if(d.silhouette && d.silhouette !== 'none') parts.push('剪影' + d.silhouette + '×' + d.silhouetteCount);
+  if(d.grain) parts.push('肌理' + d.grain);
+  if(d.guilloche && d.guilloche !== 'none') parts.push('暗纹' + d.guilloche + '/' + d.guillocheAlpha);
+  if(d.bar && d.bar !== 'none') parts.push('装饰条' + d.bar);
+  if(d.divider && d.divider !== 'none') parts.push('分割' + d.divider);
+  if(d.watermark) parts.push('水印「' + d.watermark + '」' + d.watermarkAlpha);
+  if(d.subTitleEn) parts.push('英文副标「' + d.subTitleEn + '」');
+  if(d.subTitle) parts.push('副标「' + d.subTitle + '」');
+  if(d.sideNote) parts.push('竖排「' + d.sideNote + '」');
+  return parts.length ? parts.join('、') : '已开启但没有装饰元素';
+}
 function aiBuildStyleOnlyMessages(state, style, hasImg){
   var body = (state.body || '').trim();
   var sample = body.length > 1200 ? body.slice(0, 600) + ' ……（略）…… ' + body.slice(-600) : body;
@@ -1976,7 +2639,25 @@ function aiBuildStyleOnlyMessages(state, style, hasImg){
 '  或用「反衬」（沉重的文字配明亮底、克制的文字配浓重底）制造张力。',
 '  正文色与标题色要有细微差别，标题稍突出。',
 '',
-'  现在只输出那一行 <!--FIT2:{...}--> JSON，不要有任何其他文字。'
+'  现在只输出这两行：FIT2 排式 JSON，和 DECO 装帧 JSON，不要有任何其他文字。',
+'',
+'【第二行：装帧装饰 JSON】',
+'  <!--DECO:{"silhouette":"?","silhouetteCount":?,"grain":?,"guilloche":"?","guillocheAlpha":?,"bar":"?","divider":"?","watermark":"?","watermarkAlpha":?,"watermarkScale":?,"subTitleEn":"?","subTitle":"?","sideNote":"?"}-->',
+'  这次也要换一套明显不同的装帧，不要重复用现在的：',
+'    silhouette: none | lamb | tree | mountain | moon | star | flower | bird | feather | window',
+'      （羊/树/山/月牙/星芒/花/飞鸟/羽毛/拱窗 —— 按内容意象选）',
+'    silhouetteCount: 1~5        grain: 0~100（肌理颗粒）',
+'    guilloche: none | arc | grid | wave | ring',
+'    guillocheAlpha: 2~30        bar: none | solid | gradient | rule | double | taper',
+'    divider: none | dots | diamond | ornament | leaf | line',
+'    watermark: 1~6 个字         watermarkAlpha: 4~40      watermarkScale: 12~60',
+'    subTitleEn: 英文装饰副标（衬线斜体，排在主标题下）',
+'    subTitle: 中文副标 4~8 字    sideNote: 竖排注解 4~10 字',
+'',
+'  装帧的判断标准：一张图上除了文字，还应该「看得到别的东西」——',
+'    肌理、暗纹、剪影、色带至少开两三项。只调字号颜色是不够的。',
+'    但也别全开满，装饰是托住文字的，不能压过可读性。',
+'  当前装帧是：' + (DECO_SNAPSHOT ? DECO_SNAPSHOT(state) : '(未开启)')
   ].join('\n');
 
   var user = [
@@ -2077,6 +2758,7 @@ async function aiCall(messages, onDelta){
      旧版 <!--FIT:essay,paper,under-short,...-->       逗号分隔（6 个值）
    模型有时会写出畸形 JSON，解析失败要静默降级成 {}，不能影响正文。 */
 var FIT_STRIP_RE = /<!--\s*FIT2?:[\s\S]*?-->/gi;
+var DECO_STRIP_RE = /<!--\s*DECO:[\s\S]*?-->/gi;
 function aiParse(out){
   var fit = {};
   var m2 = out.match(/<!--\s*FIT2:([\s\S]*?)-->/i);
@@ -2094,8 +2776,17 @@ function aiParse(out){
       keys.forEach(function(k, i){ if(seg[i]) fit[k] = seg[i]; });
     }
   }
-  var body = out.replace(FIT_STRIP_RE, '').replace(/^\s*\n+/, '').trim();
-  return {body: body, fit: fit, hasImg: aiCountImg(body) > 0};
+  /* 装帧装饰：<!--DECO:{...}-->，畸形则静默降级为空 */
+  var deco = {};
+  var m3 = out.match(/<!--\s*DECO:([\s\S]*?)-->/i);
+  if(m3){
+    try{
+      var dj = JSON.parse(m3[1].trim());
+      if(dj && typeof dj === 'object' && !Array.isArray(dj)) deco = dj;
+    }catch(e){ deco = {}; }
+  }
+  var body = out.replace(FIT_STRIP_RE, '').replace(DECO_STRIP_RE, '').replace(/^\s*\n+/, '').trim();
+  return {body: body, fit: fit, deco: deco, hasImg: aiCountImg(body) > 0};
 }
 
 /* 数值白名单：把模型给的值夹到引擎安全范围内。
@@ -2179,6 +2870,42 @@ function aiApplyFit(fit){
   }
   if(typeof fit.side === 'boolean'){ st.sideOn = fit.side; applied.push('侧题'); }
   if(!applied.length && fit.preset && PRESETS[fit.preset]) applied.push('版式');
+  return Array.from(new Set(applied));
+}
+
+/* 套用装帧装饰配置。模型输出先过 decoSanitize 白名单，再夹数值范围。
+   返回实际改了哪些项，用于状态提示。 */
+var DECO_RANGES = {
+  silhouetteCount:[1,5], grain:[0,100], guillocheAlpha:[2,30],
+  watermarkAlpha:[4,40], watermarkScale:[12,60]
+};
+var DECO_LABELS = {
+  silhouette:'剪影', silhouetteCount:'剪影数量', grain:'肌理',
+  guilloche:'暗纹', guillocheAlpha:'暗纹浓度', bar:'装饰条', divider:'分割条',
+  watermark:'水印', watermarkAlpha:'水印浓度', watermarkScale:'水印大小',
+  watermarkOutline:'水印描边', subTitleEn:'英文副标', subTitle:'副标', sideNote:'竖排注解'
+};
+function aiApplyDeco(dc){
+  if(!dc) return [];
+  var clean = decoSanitize(dc);
+  /* 模型没给任何装饰字段 → 视为「不装帧」，不要擅自打开 */
+  if(!Object.keys(clean).length) return [];
+  var applied = [];
+  st.deco.frame = true;
+  Object.keys(clean).forEach(function(k){
+    var v = clean[k];
+    if(DECO_RANGES[k]){
+      var r = DECO_RANGES[k];
+      v = Math.max(r[0], Math.min(r[1], Math.round(v)));
+    }
+    st.deco[k] = v;
+    if(DECO_LABELS[k]) applied.push(DECO_LABELS[k]);
+  });
+  /* 开了水印但没给文字 → 给个兜底，否则水印层是空的 */
+  if(st.deco.watermarkAlpha && !st.deco.watermark){
+    st.deco.watermark = (st.title || '').slice(0, 4) || 'MEMORIA';
+    applied.push('水印(自动取标题)');
+  }
   return Array.from(new Set(applied));
 }
 /* 按背景明度挑一个看得清的正文色 */
@@ -2268,6 +2995,77 @@ function markPresetChips(){
   $('presetName').textContent = PRESETS[st.preset] ? PRESETS[st.preset].name : '自定义';
 }
 function syncColorInputs(){ $('cBg').value = st.c.bg; $('cText').value = st.c.text; $('cTitle').value = st.c.title; }
+/* ================= 装帧面板交互 ================= */
+var DECO_FMT = {
+  silhouetteCount:function(v){ return v + ' 个'; },
+  grain:function(v){ return v === 0 ? '关闭' : v + '%'; },
+  guillocheAlpha:function(v){ return v + '%'; },
+  watermarkAlpha:function(v){ return v + '%'; },
+  watermarkScale:function(v){ return '占宽 ' + v + '%'; }
+};
+var DECO_LAB = {silhouetteCount:'vSilCount', grain:'vGrain', guillocheAlpha:'vGuilloche',
+                watermarkAlpha:'vWmAlpha', watermarkScale:'vWmScale'};
+function showDecoUI(){
+  $('decoCtl').style.display = st.deco.frame ? 'block' : 'none';
+  $('ckDecoFrame').checked = !!st.deco.frame;
+}
+$('ckDecoFrame').addEventListener('change', function(){
+  st.deco.frame = this.checked;
+  showDecoUI(); scheduleRender(60); saveSoon();
+  if(this.checked) toast('装帧已开启，可配置下方装饰图层');
+});
+/* 枚举 seg */
+Array.prototype.forEach.call(document.querySelectorAll('.seg[data-deco]'), function(seg){
+  var key = seg.dataset.deco;
+  Array.prototype.forEach.call(seg.querySelectorAll('button'), function(b){
+    b.addEventListener('click', function(){
+      Array.prototype.forEach.call(seg.querySelectorAll('button'), function(x){ x.classList.remove('on'); });
+      b.classList.add('on');
+      st.deco[key] = b.dataset.v;
+      scheduleRender(60); saveSoon();
+    });
+  });
+});
+/* 数值 range */
+Object.keys(DECO_FMT).forEach(function(key){
+  var input = document.querySelector('input[type=range][data-deco=' + key + ']');
+  if(!input) return;
+  function show(){ $(DECO_LAB[key]).textContent = DECO_FMT[key](input.value); }
+  show();
+  input.addEventListener('input', function(){
+    st.deco[key] = parseFloat(input.value);
+    show(); scheduleRender(90); saveSoon();
+  });
+});
+/* 文本 */
+[['inWatermark','watermark'],['inSubEn','subTitleEn'],['inSubTitle','subTitle'],['inSideNote','sideNote']]
+.forEach(function(p){
+  $(p[0]).addEventListener('input', function(){
+    st.deco[p[1]] = this.value;
+    scheduleRender(90); saveSoon();
+  });
+});
+$('ckWmOutline').addEventListener('change', function(){
+  st.deco.watermarkOutline = this.checked; scheduleRender(60); saveSoon();
+});
+function syncDecoUI(){
+  showDecoUI();
+  Array.prototype.forEach.call(document.querySelectorAll('.seg[data-deco]'), function(seg){
+    var key = seg.dataset.deco;
+    Array.prototype.forEach.call(seg.querySelectorAll('button'), function(b){
+      b.classList.toggle('on', String(st.deco[key]) === b.dataset.v);
+    });
+  });
+  ['silhouetteCount','grain','guillocheAlpha','watermarkAlpha','watermarkScale'].forEach(function(k){
+    var el = document.querySelector('input[type=range][data-deco=' + k + ']');
+    if(el){ el.value = st.deco[k]; if(DECO_LAB[k]) $(DECO_LAB[k]).textContent = DECO_FMT[k](el.value); }
+  });
+  $('inWatermark').value = st.deco.watermark || '';
+  $('inSubEn').value = st.deco.subTitleEn || '';
+  $('inSubTitle').value = st.deco.subTitle || '';
+  $('inSideNote').value = st.deco.sideNote || '';
+  $('ckWmOutline').checked = !!st.deco.watermarkOutline;
+}
 [['cBg','bg'],['cText','text'],['cTitle','title']].forEach(function(p){
   $(p[0]).addEventListener('input', function(){
     st.c[p[1]] = this.value; st.tpl = 'custom';
@@ -2603,6 +3401,7 @@ function syncUI(){
     $(id).value = st[{selRule:'rule', selOrn:'orn', selDrop:'dropCap', selFooter:'footer'}[id]];
   });
   syncColorInputs(); markSwatch(); markPresetChips(); markFontChips(); syncModeRows(); showBgUI();
+  if(typeof syncDecoUI === 'function') syncDecoUI();
 }
 
 /* 折叠区统一交互 */
@@ -2633,11 +3432,14 @@ function aiCurStyle(){
 /* 撤销栈：只存 AI 改动过的字段，够用且不占空间 */
 function aiSnapshot(){
   return {body:st.body, title:st.title, preset:st.preset, tpl:st.tpl, c:clone(st.c),
-          rule:st.rule, orn:st.orn, footer:st.footer, font:st.font};
+          rule:st.rule, orn:st.orn, footer:st.footer, font:st.font,
+          deco: clone(st.deco || {})};
 }
 function aiRestore(s){
   st.body = s.body; st.title = s.title; st.preset = s.preset; st.tpl = s.tpl; st.c = clone(s.c);
   st.rule = s.rule; st.orn = s.orn; st.footer = s.footer; st.font = s.font;
+  /* 装帧配置也要一起恢复，否则撤销后装饰还在 */
+  if(s.deco) st.deco = clone(s.deco);
   syncUI(); scheduleRender(0); saveSoon();
 }
 $('btnAiUndo').addEventListener('click', function(){
@@ -2685,7 +3487,7 @@ async function aiRun(mode){
         ? '模型只返回了排版参数、没有正文。换个风格或重跑一次试试'
         : '模型返回内容过短（' + r.body.length + ' 字），建议重跑');
     }
-    if(styleOnly && !Object.keys(r.fit || {}).length){
+    if(styleOnly && !Object.keys(r.fit || {}).length && !Object.keys(r.deco || {}).length){
       throw new Error('模型没有给出排式参数，重试一次');
     }
 
@@ -2713,6 +3515,8 @@ async function aiRun(mode){
     }
 
     var applied = aiApplyFit(r.fit);
+    /* 装帧装饰：AI 给的 DECO。styleOnly 模式下不重排正文，但装饰照样能换。 */
+    var decoApplied = aiApplyDeco(r.deco);
     syncUI(); scheduleRender(0); saveSoon();
 
     var sec = ((Date.now() - tStart) / 1000).toFixed(1);
@@ -2720,6 +3524,7 @@ async function aiRun(mode){
       ? '🎲 换了一套排式（' + sec + '秒）'
       : '✅ 排版完成（' + sec + '秒）';
     if(applied.length) msg += ' · ' + applied.join('、');
+    if(decoApplied.length) msg += ' · 🎨 装帧：' + decoApplied.join('、');
     if(!styleOnly){
       var imgs = aiCountImg(st.body);
       if(useImg && imgs) msg += ' · 插入 ' + imgs + ' 张配图';
@@ -2733,6 +3538,15 @@ async function aiRun(mode){
       st.margin >= 150 ? '宽边距' : (st.margin <= 80 ? '窄边距' : '中边距'),
       st.bg ? st.bg.toUpperCase() : ''
     ].join(' · ');
+    if(st.deco.frame && (st.deco.silhouette !== 'none' || st.deco.watermark)){
+      var dparts = [];
+      if(st.deco.silhouette !== 'none') dparts.push('剪影×' + st.deco.silhouetteCount);
+      if(st.deco.watermark) dparts.push('水印「' + st.deco.watermark + '」');
+      if(st.deco.grain) dparts.push('肌理' + st.deco.grain);
+      if(st.deco.guilloche !== 'none') dparts.push('暗纹' + st.deco.guilloche);
+      if(st.deco.subTitleEn) dparts.push('EN「' + st.deco.subTitleEn + '」');
+      if(dparts.length) snap += '\n装帧：' + dparts.join(' · ');
+    }
     aiSetStatus('ok', msg + '\n本次：' + snap + '\n不满意就点「换个排式」，会换一整套不同的。');
     toast(styleOnly ? '已换一套排式' : 'AI 排版完成');
     await aiImgWait();
