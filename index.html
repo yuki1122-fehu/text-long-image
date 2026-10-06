@@ -193,6 +193,13 @@ input[type=password]:focus{border-color:var(--acc);}
 .fold.open .fold-body{display:block;}
 .fold.open .fold-h .arw{transform:rotate(90deg);}
 .fold-h .arw{transition:transform .2s; color:var(--tx2); font-size:12px;}
+/* AI 面板内的二级折叠：比主折叠更轻的分隔，不抢视觉层级 */
+.adv-h{display:flex; justify-content:space-between; align-items:center; font-size:12.5px;
+       color:var(--tx2); cursor:pointer; font-weight:600; margin-top:10px;
+       padding:6px 0 2px; border-top:1px dashed var(--line); user-select:none;}
+.adv-h .arw{transition:transform .2s; font-size:11px;}
+.adv-h.open .arw{transform:rotate(90deg);}
+.adv-body{margin-top:8px;}
 .status{font-size:12px; margin-top:8px; line-height:1.6; word-break:break-all;}
 .status.ok{color:var(--acc);} .status.bad{color:var(--danger);} .status.info{color:var(--tx2);}
 #overlay{position:fixed; inset:0; background:rgba(5,8,6,.6); backdrop-filter:blur(3px); display:none; align-items:center; justify-content:center; z-index:50;}
@@ -281,6 +288,43 @@ input[type=password]:focus{border-color:var(--acc);}
         <div class="row"><div class="lab"><b>AI 接口 Key</b><span class="val" id="vAiKey">未设置</span></div>
           <input type="password" id="inAiKey" placeholder="sk-...（DeepSeek API Key）" autocomplete="off">
           <div class="note">Key 只存在这台设备的浏览器里，不上传服务器。换设备要重新填。</div>
+        </div>
+        <div class="adv-h" id="aiAdvH"><span>⚙︎ 接口与生成参数</span><span class="arw">›</span></div>
+        <div class="adv-body" id="aiAdvBody" style="display:none">
+          <div class="row">
+            <div class="lab"><b>服务商</b><span class="val">点一下自动填地址和模型</span></div>
+            <div class="seg" id="segAiPreset" style="flex:1;flex-wrap:wrap">
+              <button data-i="0" class="on">DeepSeek</button>
+              <button data-i="1">Kimi</button>
+              <button data-i="2">智谱</button>
+              <button data-i="3">硅基流动</button>
+              <button data-i="4">OpenAI</button>
+              <button data-i="5">百炼</button>
+            </div>
+          </div>
+          <div class="row">
+            <div class="lab"><b>接口地址</b><span class="val">OpenAI 兼容</span></div>
+            <input type="text" id="inAiApi" placeholder="https://api.deepseek.com/chat/completions" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="row">
+            <div class="lab"><b>模型名</b><span class="val" id="vAiModel"></span></div>
+            <input type="text" id="inAiModel" placeholder="deepseek-chat" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="row"><div class="lab"><b>温度</b><span class="val" id="vAiTemp"></span></div>
+            <input type="range" id="rgAiTemp" min="0.2" max="1.5" step="0.05"></div>
+          <div class="row"><div class="lab"><b>单次最长输出</b><span class="val" id="vAiMaxTok"></span></div>
+            <input type="range" id="rgAiMaxTok" min="2048" max="32768" step="1024"></div>
+          <div class="row">
+            <div class="lab"><b>识图模型</b><span class="val">留空自动</span></div>
+            <input type="text" id="inAiVision" placeholder="如 qwen-vl-max / gpt-4o-mini" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="note"><b>温度怎么调</b>：想要每次差别明显、更敢下判断，往 1.1~1.3 提；觉得太跳、格式开始出错或胡编，降到 0.6~0.8。建议 <b>1.0~1.2</b>。<br><b>最长输出</b>决定一次能排多少字，长文调到 16384 以上不容易被截断。</div>
+          <div class="note">换别的接口需要它<b>允许浏览器直连</b>（有 CORS 许可），上面列出的几家都支持。填 Model 时要注意大小写和版本号，写错会报 404/模型不存在。</div>
+          <div class="mini-btns" style="margin-top:6px">
+            <button id="btnAiTest">🔌 测一下连通性</button>
+            <button id="btnAiReset">恢复默认</button>
+          </div>
+          <div class="status info" id="aiTestStatus" style="display:none"></div>
         </div>
         <div class="row"><div class="lab"><b>排版风格</b></div>
           <div class="seg" id="segAiStyle" style="flex:1">
@@ -2827,14 +2871,44 @@ $('btnShareAll').addEventListener('click', async function(){
    配图：AI 只能从「用户已上传的图」里挑，指定插到哪一段之前。
    纯前端无法联网检索图片，AI 自己找图做不到（且图库有版权风险）。 */
 var AI_KEY_LS = 'textlongimg-aikey';
-var AI_MODEL = 'deepseek-chat';
-var AI_API = 'https://api.deepseek.com/chat/completions';
+/* 接口配置可由用户改（存在本机）。默认走 DeepSeek，
+   其余 OpenAI 兼容接口（Kimi / GLM / 硅基流动 / OpenAI / 百炼）只要支持浏览器直连就能用。 */
+var AI_API_DEFAULT   = 'https://api.deepseek.com/chat/completions';
+var AI_MODEL_DEFAULT = 'deepseek-chat';
+var AI_CFG_LS = 'textlongimg-aicfg';
+var AI_PRESETS = [
+  {n:'DeepSeek',  api:'https://api.deepseek.com/chat/completions',                              model:'deepseek-chat'},
+  {n:'Kimi',      api:'https://api.moonshot.cn/v1/chat/completions',                           model:'moonshot-v1-8k'},
+  {n:'智谱',       api:'https://open.bigmodel.cn/api/paas/v4/chat/completions',                  model:'glm-4-flash'},
+  {n:'硅基流动',   api:'https://api.siliconflow.cn/v1/chat/completions',                         model:'Qwen/Qwen2.5-72B-Instruct'},
+  {n:'OpenAI',    api:'https://api.openai.com/v1/chat/completions',                             model:'gpt-4o-mini'},
+  {n:'百炼',       api:'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',      model:'qwen-plus'}
+];
+var aiCfg = {api:'', model:'', temp:0.9, maxTok:8192, visionModel:''};
+function aiLoadCfg(){
+  try{
+    var raw = localStorage.getItem(AI_CFG_LS);
+    if(raw){ var c = JSON.parse(raw); for(var k in aiCfg){ if(c[k] !== undefined && c[k] !== null) aiCfg[k] = c[k]; } }
+  }catch(e){}
+}
+function aiSaveCfg(){ try{ localStorage.setItem(AI_CFG_LS, JSON.stringify(aiCfg)); }catch(e){} }
+aiLoadCfg();
+/* 这三处原来直接用 AI_API / AI_MODEL 常量 —— 现在都是动态的 */
+function aiApiUrl(){     return String(aiCfg.api   || '').trim() || AI_API_DEFAULT; }
+function aiMainModel(){  return String(aiCfg.model || '').trim() || AI_MODEL_DEFAULT; }
+function aiTemp(){       var t = parseFloat(aiCfg.temp); return isFinite(t) ? Math.max(0, Math.min(2, t)) : 0.9; }
+function aiMaxTok(){     var m = parseInt(aiCfg.maxTok, 10); return isFinite(m) ? Math.max(512, Math.min(65536, m)) : 8192; }
 /* 视觉模型：DeepSeek 的 V4.1-Flash 原生支持图片输入，
    图片按尺寸折算 token（单张上限 384 token），与文字同价、不额外收视觉费。
    老名字 deepseek-v4-flash-vision-exp 已被官方标注退役（请求仍由 V4.1-Flash 服务），
    保留作为兜底，万一某个账号只能用老模型。 */
 var AI_VISION_MODELS = ['deepseek-v4-flash-vision-exp', 'deepseek-chat'];
 var aiVisionModel = 0;
+/* 识图用哪个模型：用户在高级设置里指定了就用他的，否则走上面的候选降级链 */
+function aiVisionName(){
+  var v = String(aiCfg.visionModel || '').trim();
+  return v || AI_VISION_MODELS[Math.min(aiVisionModel, AI_VISION_MODELS.length - 1)];
+}
 var aiUndoStack = [], aiBusy = false, aiVisionBusy = false;
 
 function aiGetKey(){ try{ return localStorage.getItem(AI_KEY_LS) || ''; }catch(e){ return ''; } }
@@ -2860,14 +2934,14 @@ async function aiDescribeMaterial(rec){
   if(!key) throw new Error('还没填 API Key');
   var b64 = await blobToBase64(rec.blob);
   var payload = {
-    model: AI_VISION_MODELS[aiVisionModel],
+    model: aiVisionName(),
     messages: [{role:'user', content: [
       {type:'text', text: AI_TAGS_PROMPT},
       {type:'image_url', image_url: {url: 'data:' + (rec.type || 'image/png') + ';base64,' + b64, detail:'low'}}
     ]}],
     stream: false
   };
-  var res = await fetch(AI_API, {
+  var res = await fetch(aiApiUrl(), {
     method:'POST',
     headers:{'Content-Type':'application/json','Authorization':'Bearer ' + key},
     body: JSON.stringify(payload)
@@ -3284,14 +3358,14 @@ async function aiCallOnce(messages, onDelta){
   if(!key) throw new Error('还没填 API Key');
   var res;
   try{
-    res = await fetch(AI_API, {
+    res = await fetch(aiApiUrl(), {
       method:'POST',
       headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + key},
       /* temperature 0.9：排版是有创造性的创作任务，需要多样性。
          原来 0.6 太低 → 同一段文字反复生成，结果高度雷同（用户反馈「重复生成几次都很平庸」）。
          0.9 让字体/字号/配色这些「判断类」输出每次都有实质差异，
          又不会离谱到破坏标记格式（格式由下面的严格约束控制）。 */
-      body: JSON.stringify({model: AI_MODEL, messages: messages, stream: true, temperature: 0.9})
+      body: JSON.stringify({model: aiMainModel(), messages: messages, stream: true, temperature: aiTemp(), max_tokens: aiMaxTok()})
     });
   }catch(e){
     throw new Error('连不上服务器，检查网络后重试');
@@ -4232,6 +4306,7 @@ function syncUI(){
   syncColorInputs(); markSwatch(); markPresetChips(); markFontChips(); syncModeRows(); showBgUI();
   if(typeof syncDecoUI === 'function') syncDecoUI();
   if(typeof syncImgMode === 'function') syncImgMode();
+  if(typeof aiAdvSyncUI === 'function') aiAdvSyncUI();
 }
 
 /* 折叠区统一交互 */
@@ -4241,6 +4316,100 @@ Array.prototype.forEach.call(document.querySelectorAll('.fold'), function(f){
 });
 
 /* ================= AI 交互 ================= */
+/* ============ AI 接口与生成参数（可自定义服务商 / 模型 / 温度）============ */
+function aiAdvSyncUI(){
+  var apiEl = $('inAiApi'), mdlEl = $('inAiModel'), visEl = $('inAiVision');
+  var tEl = $('rgAiTemp'), kEl = $('rgAiMaxTok');
+  if(apiEl) apiEl.value = aiCfg.api || '';
+  if(mdlEl) mdlEl.value = aiCfg.model || '';
+  if(visEl) visEl.value = aiCfg.visionModel || '';
+  if(tEl) tEl.value = aiTemp();
+  if(kEl) kEl.value = aiMaxTok();
+  if($('vAiTemp'))   $('vAiTemp').textContent   = aiTemp().toFixed(2);
+  if($('vAiMaxTok')) $('vAiMaxTok').textContent = aiMaxTok().toLocaleString() + ' tokens';
+  /* 模型名输入框为空时，标签显示实际会用的默认模型 */
+  if($('vAiModel'))  $('vAiModel').textContent  = aiMainModel();
+  /* 高亮匹配当前地址的那个预设 */
+  Array.prototype.forEach.call(document.querySelectorAll('#segAiPreset button'), function(b){
+    var p = AI_PRESETS[parseInt(b.dataset.i, 10)];
+    b.classList.toggle('on', !!p && p.api === aiApiUrl() && p.model === aiMainModel());
+  });
+}
+(function(){
+  var h = $('aiAdvH'), body = $('aiAdvBody');
+  if(h && body) h.addEventListener('click', function(){
+    var open = body.style.display !== 'none';
+    body.style.display = open ? 'none' : 'block';
+    h.classList.toggle('open', !open);
+  });
+})();
+Array.prototype.forEach.call(document.querySelectorAll('#segAiPreset button'), function(b){
+  b.addEventListener('click', function(){
+    var p = AI_PRESETS[parseInt(b.dataset.i, 10)];
+    if(!p) return;
+    aiCfg.api = p.api; aiCfg.model = p.model; aiCfg.visionModel = '';
+    aiSaveCfg(); aiAdvSyncUI();
+    toast('已切到 ' + p.n + '，记得换对应的 API Key');
+  });
+});
+function aiBindAdvInput(id, key, isNum){
+  var el = $(id); if(!el) return;
+  el.addEventListener('input', function(){
+    var v = this.value;
+    aiCfg[key] = isNum ? parseFloat(v) : v.trim();
+    aiSaveCfg(); aiAdvSyncUI();
+  });
+}
+aiBindAdvInput('inAiApi', 'api');
+aiBindAdvInput('inAiModel', 'model');
+aiBindAdvInput('inAiVision', 'visionModel');
+(function(){
+  var t = $('rgAiTemp');
+  if(t) t.addEventListener('input', function(){ aiCfg.temp = parseFloat(this.value); aiSaveCfg(); aiAdvSyncUI(); });
+  var k = $('rgAiMaxTok');
+  if(k) k.addEventListener('input', function(){ aiCfg.maxTok = parseInt(this.value, 10); aiSaveCfg(); aiAdvSyncUI(); });
+})();
+$('btnAiReset').addEventListener('click', function(){
+  aiCfg.api = ''; aiCfg.model = ''; aiCfg.visionModel = ''; aiCfg.temp = 0.9; aiCfg.maxTok = 8192;
+  aiSaveCfg(); aiAdvSyncUI();
+  $('aiTestStatus').style.display = 'none';
+  toast('已恢复默认（DeepSeek / deepseek-chat / 温度 0.90）');
+});
+/* 连通性自检：只验证 key + 地址 + 模型是否配套，花极少 token */
+$('btnAiTest').addEventListener('click', async function(){
+  var st = $('aiTestStatus');
+  st.style.display = 'block';
+  st.className = 'status info';
+  var key = aiGetKey();
+  if(!key){ st.className = 'status bad'; st.textContent = '❌ 还没填 API Key'; return; }
+  if(document.activeElement) document.activeElement.blur();
+  st.textContent = '正在连接 ' + aiApiUrl().replace('https://','').slice(0, 46) + ' …';
+  var t0 = Date.now();
+  try{
+    var res = await fetch(aiApiUrl(), {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer ' + key},
+      body: JSON.stringify({model: aiMainModel(), messages:[{role:'user', content:'ping'}],
+                            stream:false, max_tokens: 8})
+    });
+    var j = null, txt = '';
+    try{ j = await res.json(); }catch(e){ txt = '响应不是 JSON'; }
+    if(res.ok){
+      st.className = 'status ok';
+      st.textContent = '✅ 连通 · ' + aiMainModel() + ' · 耗时 ' + (Date.now()-t0) + 'ms';
+    }else{
+      var msg = (j && (j.error?.message || j.message)) || txt || ('HTTP ' + res.status);
+      st.className = 'status bad';
+      st.textContent = '❌ ' + res.status + '：' + String(msg).slice(0, 90)
+        + (res.status === 404 ? '（多半是接口地址或模型名写错了）' : '')
+        + (res.status === 401 ? '（Key 无效，或不属于这个服务商）' : '');
+    }
+  }catch(e){
+    st.className = 'status bad';
+    st.textContent = '❌ 连不上：' + (e.message || '网络错误') + '（这个接口可能不允许浏览器直连）';
+  }
+});
+
 $('inAiKey').addEventListener('input', function(){
   aiSetKey(this.value.trim());
   aiRefreshKeyUI();
