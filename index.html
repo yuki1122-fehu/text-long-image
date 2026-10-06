@@ -585,7 +585,7 @@ input[type=password]:focus{border-color:var(--acc);}
       </div>
     </div>
     <div class="row"><div class="lab"><b>标题字号</b><span class="val" id="vTitleSize"></span></div>
-      <input type="range" data-key="titleSize" min="28" max="90" step="2"></div>
+      <input type="range" data-key="titleSize" min="28" max="118" step="2"></div>
     <div class="row"><div class="lab"><b>正文字号</b><span class="val" id="vBodySize"></span></div>
       <input type="range" data-key="bodySize" min="22" max="64" step="2"></div>
     <div class="row"><div class="lab"><b>行距</b><span class="val" id="vLineHeight"></span></div>
@@ -759,6 +759,16 @@ function decoSanitize(d){
   ['grain','guillocheAlpha','watermarkAlpha','watermarkScale','silhouetteCount'].forEach(function(k){
     if(d[k] !== undefined && isFinite(parseFloat(d[k]))) out[k] = parseFloat(d[k]);
   });
+  function numOrNull(v){ var n = parseFloat(v); return isFinite(n) ? n : null; }
+  /* 背景贴图 matArt 系列 —— 「有设计感」和「像 Word」的分水岭，必须能被 AI 驱动。
+     matArt 是「第几张素材」，编号对应提示词里给 AI 看的那份清单。 */
+  var ma = numOrNull(d.matArt);
+  if(ma !== null) out.matArt = Math.max(0, Math.min(60, Math.round(ma)));
+  if(typeof d.matArtPos === 'string' && DECO_ENUM.matArtPos.indexOf(d.matArtPos) >= 0) out.matArtPos = d.matArtPos;
+  var maA = numOrNull(d.matArtAlpha);
+  if(maA !== null) out.matArtAlpha = Math.max(0, Math.min(40, Math.round(maA)));
+  var maS = numOrNull(d.matArtScale);
+  if(maS !== null) out.matArtScale = Math.max(60, Math.min(320, Math.round(maS)));
   if(typeof d.cover === 'boolean') out.cover = d.cover;
   if(typeof d.watermarkOutline === 'boolean') out.watermarkOutline = d.watermarkOutline;
   return out;
@@ -2989,7 +2999,9 @@ var AI_PROMPT = [
 '      fang 仿宋：公文感、克制、朴素，适合叙事、记录',
 '      yuan 圆体：温柔、圆融、可爱，适合治愈、童稚、温柔口吻',
 '',
-'  · titleSize(标题字号 px) 28~90：标题要压得住，但别大到挤。字数少的标题可以更大。',
+'  · titleSize(标题字号 px) 28~118：标题要压得住，这是版面最重要的视觉锚点。',
+'     短标题（2~4 字）请大胆用到 80~110 —— 大字标题配小字正文的落差，正是杂志封面感的关键；',
+'     长标题（8 字以上）回到 50~70，以免挤成两行。',
 '  · bodySize(正文字号 px) 26~52：手机阅读 30~38 最舒服；内容沉重可略小，轻松叙述可略大。',
 '  · lineHeight(行距倍数) 1.5~2.6：情绪压抑、句子长 → 调大；短句、活泼 → 调小。',
 '  · paraGap(段距倍数) 0.4~1.8：段落是独立单元就调大，段落是连续思绪就调小。',
@@ -3039,11 +3051,76 @@ var AI_PROMPT = [
 '【最后一句最重要】',
 '  这些参数没有「正确答案」，只有「和这段文字最匹配」的答案。',
 '  请务必根据正文内容做出你自己的判断，不要输出任何一组「放之四海皆准」的安全值。',
+
+'',
+'【什么叫「好」—— 一份完整的参考】',
+'  下面是一份被认可的高质量输出（内容恰好也是关于羊的离丧），注意它是如何「成套」的：',
+'',
+'    底色 #C9C9CE 冷灰（不是默认深绿/米白）；标题「亡羔羊」压到 104px 占据半个版面；',
+'    标题下衬线斜体英文 Death of a Lamb；右上角竖排小字「灵魂的牧人」；',
+'    标题区下方：一条通栏实色带 + 三只羔羊剪影错落其中；',
+'    正文用 # 分出章节、首行缩进、宽边距留白；',
+'    版面右下角压着一张巨大的古典线稿素材（出血被裁、浓度 13%）；',
+'    底部还有巨大的半透明水印「虚构往昔」。',
+'',
+'  它做对了三件事，请照着这个标准来：',
+'    1) 敢于走极端 —— 标题极大、底色特意、边距很宽。半吊子的数值等于没调。',
+'    2) 图层成套 —— 背景贴图、剪影、装饰条、水印、肌理至少同时用到 5 项，',
+'       只开一两项装饰或只调字号颜色，出来的还是 Word。',
+'    3) 每个装饰都在讲这个故事 —— 羔羊配悼亡、羽毛配离别、时钟配追忆，',
+'       装饰不是随机的美化，是内容情绪的具象化。',
+'',
+'  ⚠️ 反过来，下面这些是被明确否定的输出：',
+'    「除了文字什么都没有」「只有字号和颜色变化」「所有文章都给同一套配色和参数」。',
 ].join('\n');
 
 /* 图片指令：让模型只从用户给的编号里挑 */
 /* 配图提示词。关键：必须把素材「是什么」告诉模型，否则它只看到编号，
    没法按内容语义挑选（用户上传时写的描述就是给模型看的）。 */
+/* 背景贴图指令：告诉模型「素材能当文字底下的氛围层」，并给出可选的编号清单。
+   独立于 aiImgPrompt —— 因为即使正文一张插图都不插，背景纹理也应该用上：
+   它是让版面「有设计感」而不是「Word 排版」的关键一层。
+   素材库为空时退回内置 28 张（用户没勾配图也照样能给版面垫一层）。 */
+function aiBgArtPrompt(mats){
+  var src = (mats && mats.length) ? mats : null;
+  var builtin = (!src && typeof BUILTIN_MATS !== 'undefined') ? BUILTIN_MATS : null;
+  if(!src && !builtin) return '';
+  var lines = ['', '【背景贴图：最关键的一层】',
+    '  从下面挑 1 张铺在整张版面之下 —— 它会放大到超出版面边界、被裁掉一部分，',
+    '  以极低浓度压在文字下面，像纸面自身的纹理，而不是一张贴上去的图。',
+    '  这一层是「有设计感」和「Word 排版」的分水岭：剪影、水印、装饰条都是点，它才是底。',
+    ''];
+  var n = 0;
+  if(src){
+    lines.push('  可用素材（编号 = matArt 的值）：');
+    var lim = Math.min(src.length, 30);
+    for(var i=0;i<lim;i++){
+      var m = src[i];
+      var desc = (m.tags || '').trim();
+      lines.push('    matArt:' + (i+1) + ' → ' + m.name + (desc ? ' ｜ ' + desc : ''));
+      n++;
+    }
+  }else{
+    lines.push('  可用素材（内置 ' + builtin.length + ' 张，编号 = matArt 的值）：');
+    for(var j=0;j<builtin.length;j++){
+      lines.push('    matArt:' + (j+1) + ' → ' + builtin[j].n + ' ｜ ' + builtin[j].t);
+      n++;
+    }
+  }
+  lines = lines.concat([
+    '',
+    '  DECO 里的写法：',
+    '    "matArt": 7              → 用第 7 张（0 = 不用）',
+    '    "matArtPos": "tl"        → tl 左上 | tr 右上 | br 右下 | bl 左下 | top 顶部横铺 | bottom 底部横铺',
+    '    "matArtAlpha": 13        → 浓度 6~22，建议 10~16（再高就抢字了）',
+    '    "matArtScale": 170       → 出血倍率 100~260，建议 140~200（>100 才会被边界裁切）',
+    '',
+    '  怎么选：按正文的核心意象挑那张最贴的，位置避开视觉中心（贴角最自然）。',
+    '  ⚠️ 请务必启用这一层。只有在素材与内容完全无关时才给 matArt:0。'
+  ]);
+  return lines.join('\n');
+}
+
 function aiImgPrompt(mats){
   if(!mats || !mats.length) return '';
   var lines = [
@@ -3072,7 +3149,9 @@ function aiImgPrompt(mats){
 }
 
 function aiBuildMessages(text, style, mats){
-  var sys = AI_PROMPT + '\n\n' + AI_STYLE_DESC[style] + (mats && mats.length ? '\n' + aiImgPrompt(mats) : '');
+  var sys = AI_PROMPT + '\n\n' + AI_STYLE_DESC[style]
+          + (mats && mats.length ? '\n' + aiImgPrompt(mats) : '')
+          + aiBgArtPrompt(mats);   /* 背景贴图：有没有配图都给，它独立于 IMG:N */
   return [{role:'system', content:sys}, {role:'user', content:text}];
 }
 
@@ -3143,7 +3222,7 @@ function aiBuildStyleOnlyMessages(state, style, hasImg){
 '【合法取值范围】',
 '  preset: plain | magazine | essay | dropcap | narrow | sidebar | mast | verse',
 '  font: song 宋体 | hei 黑体 | kai 楷体 | fang 仿宋 | yuan 圆体',
-'  titleSize: 28~90    bodySize: 26~52    lineHeight: 1.5~2.6    paraGap: 0.4~1.8',
+'  titleSize: 28~118   bodySize: 26~52    lineHeight: 1.5~2.6    paraGap: 0.4~1.8',
 '  margin: 60~200      ls: 0~6            dropCap: 0 | 2 | 3 | 4',
 '  align: left | center        indent: yes | no        side: true | false',
 '  rule: none | under | top-bottom | under-short | double | leftbar',
@@ -3349,7 +3428,7 @@ function aiApplyFit(fit){
 
   if(fit.font && FONT_DEFS[fit.font]){ st.font = fit.font; applied.push('字体'); }
   if(fit.titleSize !== undefined){
-    var ts = aiNum(fit.titleSize, 28, 90, st.titleSize, true);
+    var ts = aiNum(fit.titleSize, 28, 118, st.titleSize, true);
     if(ts !== st.titleSize){ st.titleSize = ts; applied.push('标题字号'); } else applied.push('标题字号');
   }
   if(fit.bodySize !== undefined){
@@ -3404,13 +3483,14 @@ function aiApplyFit(fit){
    返回实际改了哪些项，用于状态提示。 */
 var DECO_RANGES = {
   silhouetteCount:[1,5], grain:[0,100], guillocheAlpha:[2,30],
-  watermarkAlpha:[4,40], watermarkScale:[12,60]
+  watermarkAlpha:[4,40], watermarkScale:[12,60],
+  matArt:[0,60], matArtAlpha:[0,40], matArtScale:[60,320]
 };
 /* 只把「主要装饰」列为已配置项 —— 数量/浓度这类微调参数不上报，
    否则状态栏会列成「剪影、剪影数量、水印、水印浓度、水印大小…」一长串噪音。 */
 var DECO_LABELS = {
   silhouette:'剪影', grain:'肌理', guilloche:'暗纹', bar:'装饰条',
-  divider:'分割条', watermark:'水印',
+  divider:'分割条', watermark:'水印', matArt:'背景贴图',
   subTitleEn:'英文副标', subTitle:'副标', sideNote:'竖排注解'
 };
 /* ---- 自动装帧兜底 ----
