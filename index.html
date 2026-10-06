@@ -240,6 +240,14 @@ input[type=password]:focus{border-color:var(--acc);}
           <button data-v="builtin" class="on">内置素材 28</button>
           <button data-v="mine">我添加的 <span id="myMatCount"></span></button>
         </div>
+        <div class="row" style="margin-bottom:8px">
+          <div class="lab"><b>贴图怎么用</b><span class="val" id="imgModeTip"></span></div>
+          <div class="seg" data-key="imgMode" style="flex:1;flex-wrap:wrap">
+            <button data-v="bg" class="on">隐入背景</button>
+            <button data-v="block">插图块</button>
+          </div>
+        </div>
+        <div class="note" id="imgModeNote" style="margin:0 0 10px"></div>
         <div id="paneBuiltin">
           <div class="note" style="margin-top:0">已内置 <b>28 张</b>常用插画（治愈系：云、羽、水母、植物、时钟、唱片…），每张都写好了说明，AI 会按内容语义挑选。<b>点缩图即加入素材库</b>，不想要的再点一下取消。</div>
           <div class="mat-grid" id="builtinGrid"></div>
@@ -475,22 +483,24 @@ input[type=password]:focus{border-color:var(--acc);}
           </div>
 
           <div class="row" style="margin-top:6px;padding-top:10px;border-top:1px dashed var(--line)">
-            <div class="lab"><b>素材底层贴图</b><span class="val">透明贴图铺在文字之下，不占版面</span></div>
+            <div class="lab"><b>追加一张底图</b><span class="val">在 AI 选的贴图之外再加一张</span></div>
             <div class="seg" data-deco="matArtPos" style="flex:1;flex-wrap:wrap">
-              <button data-v="none" class="on">不用</button>
-              <button data-v="scatter">散落</button>
-              <button data-v="center">居中</button>
-              <button data-v="corner">角落</button>
-              <button data-v="bottom">下方</button>
+              <button data-v="none" class="on">不加</button>
+              <button data-v="tl">左上出血</button>
+              <button data-v="tr">右上出血</button>
+              <button data-v="br">右下出血</button>
+              <button data-v="bl">左下出血</button>
+              <button data-v="top">顶部横铺</button>
+              <button data-v="bottom">底部横铺</button>
             </div>
           </div>
           <div class="row"><div class="lab"><b>用第几张素材</b><span class="val" id="vMatArtIdx"></span></div>
             <input type="range" data-deco="matArt" min="0" max="28" step="1"></div>
           <div class="row"><div class="lab"><b>贴图浓度</b><span class="val" id="vMatArtAlpha"></span></div>
-            <input type="range" data-deco="matArtAlpha" min="0" max="60" step="2"></div>
-          <div class="row"><div class="lab"><b>贴图大小</b><span class="val" id="vMatArtScale"></span></div>
-            <input type="range" data-deco="matArtScale" min="20" max="160" step="5"></div>
-          <div class="note">这是把透明 PNG 当<b>背景装饰</b>：铺在整张版面之下、正文压在上面，和上面的「插图块」不同 —— 插图块会占版面高度并插在段落中间。要素材库里有透明底的图才有效，不透明的照片会盖住文字。</div>
+            <input type="range" data-deco="matArtAlpha" min="0" max="40" step="2"></div>
+          <div class="row"><div class="lab"><b>出血倍率</b><span class="val" id="vMatArtScale"></span></div>
+            <input type="range" data-deco="matArtScale" min="60" max="320" step="10"></div>
+          <div class="note"><b>「出血」是关键</b>：底图会放大到超出版面边界、被裁掉一部分，读起来像纸面自身的纹理，而不是贴上去的一张图。超过 100% 才会出血，建议 130~200%。浓度压到 8~16% 才叫「隐在背景里」。</div>
           <div class="note">装帧是叠加在正文之上的图层，不会改变你的文字内容。关掉「开启装帧」即回到纯文字排版。</div>
         </div>
       </div>
@@ -703,6 +713,9 @@ var DEFAULTS = {
   rule:'none', orn:'none', dropCap:0, footer:'corner', mast:false,
   titleSize:50, bodySize:40, lineHeight:1.9, paraGap:0.85, margin:96, ls:0,
   width:1080, sliceMode:'height', sliceHeight:8400, sliceChars:1200, sliceCount:3,
+  /* 贴图用法：bg = 隐入背景（压在文字下、不占版面高度，默认）
+                block = 插图块（整幅矩形插进段落之间，占版面高度） */
+  imgMode:'bg',
   format:'png', repeatTitle:false,
   bgImg:'', bgMode:'cover', bgAlpha:100, bgShade:30,
   customCss:'', customFam:'',
@@ -719,11 +732,10 @@ var DEFAULTS = {
     guilloche:'none', guillocheAlpha:8,
     bar:'none',           /* 装饰条 */
     divider:'none',       /* 章节分割条 */
-    matArt:0,             /* 素材底层贴图：第几张（0=不用，1~N=素材库序号） */
-    matArtAlpha:16,       /* 贴图浓度 0~60（压在文字下，存在感要低） */
-    matArtScale:70,       /* 贴图大小 20~160 */
-    matArtPos:'none',     /* none | scatter 散落 | center | corner | bottom */
-    matArtCount:2
+    matArt:0,             /* 手动追加的底图：第几张（0=不用，1~N=素材库序号） */
+    matArtAlpha:12,       /* 贴图浓度 0~40（压在文字下，存在感要极低） */
+    matArtScale:150,      /* 出血倍率 60~320：>100 即放大到超出版面被裁切 */
+    matArtPos:'none',     /* none | tl 左上 | tr 右上 | br 右下 | bl 左下 | bottom 底部 | top 顶部 */
   }
 };
 /* 装饰枚举白名单：AI 只准从这些值里选，防止画出坏版 */
@@ -732,7 +744,7 @@ var DECO_ENUM = {
   guilloche: ['none','arc','grid','wave','ring'],
   bar: ['none','solid','gradient','rule','double','taper'],
   divider: ['none','dots','diamond','ornament','leaf','line'],
-  matArtPos: ['none','scatter','center','corner','bottom']
+  matArtPos: ['none','tl','tr','br','bl','bottom','top']
 };
 function decoSanitize(d){
   d = d || {};
@@ -1014,7 +1026,9 @@ function buildLayout(ctx){
   }
   var avail = W - m*2 - sideW;
   var fam = fontStack();
-  var L = {width:W, titleLines:[], bodyLines:[], titleH:0, height:0, sideW:sideW, sideFit:sideFit};
+  /* arts = 背景氛围层贴图（不占版面高度、压在正文之下）。
+     AI 用 IMG:N 标的位置只当作「锚点行号」，决定这张贴图出现在哪一张切片上。 */
+  var L = {width:W, titleLines:[], bodyLines:[], arts:[], titleH:0, height:0, sideW:sideW, sideFit:sideFit};
   var lh = st.lineHeight;
 
   /* 刊头小字 */
@@ -1127,21 +1141,34 @@ function buildLayout(ctx){
     if(extraGap > 0 && L.bodyLines.length){
       L.bodyLines[L.bodyLines.length-1].gapAfter += extraGap; extraGap = 0;
     }
-    /* IMG:N —— AI 分配的插图（编号对应 userImgs）。整幅图作为一个行块插进正文流。 */
+    /* IMG:N —— AI 分配的贴图（编号对应 userImgs）。
+       ⚠️ 设计依据（用户原话）：「我做这些贴图是为了隐在背景里的、放在文字的下面，
+       而不是放在中间。」所以默认 imgMode='bg'：不进正文流、不占版面高度，
+       只在 L.arts 记一个锚点行号，绘制时铺在正文之下。
+       imgMode='block' 才退回老行为（整幅矩形插进段落之间，会占版面高度）。 */
     var imgM = /^\s*IMG:\s*(\d+)\s*$/i.exec(raw);
     if(imgM){
       var idx = parseInt(imgM[1], 10) - 1;
       if(idx >= 0 && idx < userImgs.length){
         var im = userImgs[idx];
-        var iw = im.naturalWidth || im.width || 1, ih = im.naturalHeight || im.height || 1;
-        var boxW = avail;
-        var boxH = Math.round(boxW * (ih / iw));
-        /* 单图最高不超过 1.35 倍正文宽度对应的方形区域，避免长图被一张图撑爆 */
-        var maxH = Math.round(avail * 1.35);
-        if(boxH > maxH){ boxH = maxH; boxW = Math.round(boxH * (iw / ih)); }
-        L.bodyLines.push({type:'img', src:im.src, x:m + (avail - boxW)/2, w:boxW, h:boxH,
-          gapBefore: L.bodyLines.length ? Math.round(st.bodySize*0.9) : 0,
-          gapAfter:Math.round(st.bodySize*0.9), cap:''});
+        if(st.imgMode === 'block'){
+          var iw = im.naturalWidth || im.width || 1, ih = im.naturalHeight || im.height || 1;
+          var boxW = avail;
+          var boxH = Math.round(boxW * (ih / iw));
+          /* 单图最高不超过 1.35 倍正文宽度对应的方形区域，避免长图被一张图撑爆 */
+          var maxH = Math.round(avail * 1.35);
+          if(boxH > maxH){ boxH = maxH; boxW = Math.round(boxH * (iw / ih)); }
+          L.bodyLines.push({type:'img', src:im.src, x:m + (avail - boxW)/2, w:boxW, h:boxH,
+            gapBefore: L.bodyLines.length ? Math.round(st.bodySize*0.9) : 0,
+            gapAfter:Math.round(st.bodySize*0.9), cap:''});
+        }else{
+          /* 背景层：只记锚点 —— at 是「当前已排到的正文行数」，供切片分配 */
+          L.arts.push({src:im.src, at:L.bodyLines.length});
+          /* 留一点呼吸当作段落转折的暗示，但不占图块高度 */
+          if(L.bodyLines.length){
+            L.bodyLines[L.bodyLines.length-1].gapAfter += Math.round(st.bodySize*0.35);
+          }
+        }
       }
       continue;
     }
@@ -1318,13 +1345,31 @@ function computeSlices(L){
     groups = raw;
   }
 
-  var cum = 0;
+  /* 背景贴图按 AI 锚点行号分配到切片。
+     arts 里的 at 是「全局正文行索引」，而 groups 是顺序切分的，
+     所以每组的行区间就是 [gi0, gi0+g.length)。 */
+  function pickArts(from, to, gi){
+    var all = L.arts || [];
+    if(!all.length) return [];
+    var hit = [];
+    for(var i=0;i<all.length;i++){
+      if(all[i].at >= from && all[i].at < to) hit.push(all[i].src);
+    }
+    if(hit.length) return hit.slice(0, 2);
+    /* 这一段 AI 没标图 —— 从全部贴图里按切片序号轮换取一张，
+       保证每一张都有底子（否则只有第一张有氛围，后面几张光秃秃）。 */
+    return [all[gi % all.length].src];
+  }
+
+  var cum = 0, gi0 = 0;
   return groups.map(function(g, gi){
     var inner = 0;
     for(var j=0;j<g.length;j++) inner += (g[j].gapBefore||0) + g[j].h + (j < g.length-1 ? g[j].gapAfter : 0);
     var withTitle = (gi === 0 || st.repeatTitle) && L.titleH > 0;
     var h = Math.round(padT + (withTitle ? L.titleH : 0) + inner + padB);
-    var s = {idx:gi+1, lines:g, padT:padT, padB:padB, withTitle:withTitle, h:h, offset:cum};
+    var s = {idx:gi+1, lines:g, padT:padT, padB:padB, withTitle:withTitle, h:h, offset:cum,
+             arts:pickArts(gi0, gi0 + g.length, gi)};
+    gi0 += g.length;
     cum += h;
     return s;
   });
@@ -1492,12 +1537,15 @@ function aiImgWait(){
   var srcs = (curLayout && curLayout.bodyLines ? curLayout.bodyLines : [])
     .filter(function(l){ return l.type === 'img'; })
     .map(function(l){ return l.src; });
-  /* 素材底层贴图也要等：它不在 bodyLines 里，不加则首帧永远画不出来 */
-  if(st.deco.frame && st.deco.matArt){
-    var midx = (st.deco.matArt | 0) - 1;
-    var msrc = null;
-    if(midx >= 0 && midx < matList.length && matList[midx] && matList[midx].url) msrc = matList[midx].url;
-    else if(midx >= 0 && typeof BUILTIN_MATS !== 'undefined' && BUILTIN_MATS[midx]) msrc = BUILTIN_MATS[midx].d;
+  /* 背景氛围贴图也要等：imgMode='bg' 时它们不进 bodyLines，
+     不加等待则首帧永远画不出来（贴图会「消失」）。 */
+  if(curLayout && curLayout.arts && curLayout.arts.length){
+    for(var a=0;a<curLayout.arts.length;a++) srcs.push(curLayout.arts[a].src);
+  }
+  /* 手动指定的那一张同样要等 */
+  var midx = (st.deco.matArt | 0) - 1;
+  if(midx >= 0){
+    var msrc = artSource(midx);
     if(msrc) srcs.push(msrc);
   }
   if(!srcs.length) return Promise.resolve();
@@ -1585,26 +1633,10 @@ function drawFooter(ctx, L, slice, total){
   }
   ctx.restore();
 }
-function drawSliceCanvas(L, slice, total){
-  var c = document.createElement('canvas');
-  c.width = L.width; c.height = slice.h;
-  var x = c.getContext('2d');
-  x.fillStyle = st.c.bg; x.fillRect(0, 0, L.width, slice.h);
-  x.textBaseline = 'middle'; x.textAlign = 'left';
-  /* 侧栏竖线 */
-  if(st.rule === 'leftbar'){
-    x.save();
-    x.globalAlpha = 0.45; x.fillStyle = mutedColor();
-    var bx = Math.round(st.margin*0.55), bt = Math.max(2, Math.round(1.8*st.width/1080));
-    x.fillRect(bx, slice.padT*0.6, bt, slice.h - slice.padT*0.6 - slice.padB*0.6);
-    x.restore();
-  }
-  /* 素材底层贴图：必须画在 drawDoc 之前，正文才压在上面 */
-  if(st.deco.frame && st.deco.matArt) matArtDraw(x, L.width, slice.h, slice);
-  drawDoc(x, L, {title:slice.withTitle, lines:slice.lines}, slice.padT);
-  drawFooter(x, L, slice, total);
-  return c;
-}
+/* ⚠️ 这里原本还有一个同名 drawSliceCanvas（已被删除）。
+   JS 函数声明提升会让后定义的覆盖先定义的，所以那个旧版本永远不会被调用 ——
+   它是死代码，而素材底层贴图的调用当时加在了死代码里，导致贴图根本画不出来。
+   现在只保留下面「完整版」那一个定义。 */
 
 /* ================= 背景图 ================= */
 var bgState = {src:null, img:null, ready:null};
@@ -2232,6 +2264,10 @@ function drawSliceCanvas(L, slice, total, bgImg){
 
   /* ---- 图层 4：肌理底纹（最上层背景质感，透明度极低不影响阅读）---- */
   paperGrain(x, W, H, { lightBg: lightBg, seed: 1000 + slice.idx * 977 });
+
+  /* ---- 图层 5：背景氛围贴图（出血 + 贴边 + 极低透明度）----
+     必须在 drawDoc 之前：正文要压在贴图之上。 */
+  bgArtDraw(x, W, H, slice, lightBg);
 
   /* ---- 侧栏竖线 ---- */
   if(st.rule === 'leftbar'){
@@ -3022,8 +3058,12 @@ function aiImgPrompt(mats){
   lines.push('');
   lines.push('  怎么用：');
   lines.push('    1) 先读一遍上面的说明，找出与「这段文字的题材和情绪」最贴合的 1~3 张');
-  lines.push('    2) 在合适的段落之间插一行 IMG:N（单独占行），插图会整幅排进长图');
-  lines.push('    3) 同一张不要重复用；插图不要打断连贯的段落');
+  lines.push('    2) 在情绪转折、场景切换的那一段落「之前」单独插入一行 IMG:N');
+  lines.push('       —— 它不是插图，是这张版面的「氛围底子」：会以极低浓度铺在文字之下，');
+  lines.push('          并且放大到超出版面边界、被裁掉一部分，像纸面自身的纹理。');
+  lines.push('           所以你标的位置决定的是「这张氛围图从第几段开始生效」，不是「图放在哪一行的下面」。');
+  lines.push('    3) 长文建议在开头、中段转折、结尾各标一处，这样每一张切片都有不同的底子；');
+  lines.push('       同一张不要紧挨着重复用');
   lines.push('');
   lines.push('  ⚠️ 重要：用户是特意准备好这些素材让你用的。绝大多数文章都能找到合适的搭配，');
   lines.push('     请务必至少插入 1 处。只有在素材与内容确实毫无关联时才一张都不插。');
@@ -3431,67 +3471,154 @@ function autoDecoFromContent(){
   };
 }
 
-/* ---- 素材底层贴图（matArt）：透明贴图压在正文之下 ----
-   用户诉求：「贴图是为了隐在背景里、放在文字下面，而不是放在中间。」
-   这与 IMG:N 插图块本质不同：
-     IMG:N  → 插图块，参与排版流、占版面高度
-     matArt → 背景层，不占高度、铺满整张、正文压在上面
-   素材必须有透明底才有意义 —— 不透明照片当背景层会盖住文字。 */
-function matArtDraw(ctx, W, H, slice){
-  var idx = (st.deco.matArt | 0) - 1;
-  if(idx < 0) return false;
-  var pos = st.deco.matArtPos || 'none';
-  if(pos === 'none') return false;
-  var alpha = Math.max(0, Math.min(60, st.deco.matArtAlpha != null ? st.deco.matArtAlpha : 16)) / 100;
-  if(alpha <= 0) return false;
-  /* 优先用已加入素材库的（可能是原图），否则退回内置缩图 */
-  var src = null;
-  if(idx < matList.length && matList[idx] && matList[idx].url) src = matList[idx].url;
-  else if(typeof BUILTIN_MATS !== 'undefined' && BUILTIN_MATS[idx]) src = BUILTIN_MATS[idx].d;
-  if(!src) return false;
+/* ==================================================================
+   背景氛围层（bgArt）—— 透明贴图「隐在背景里、压在文字之下」
+   ------------------------------------------------------------------
+   用户原话：「我做这些贴图是为了隐在背景里的、放在文字的下面，
+             而不是放在中间。」
+
+   「隐在背景里」的四个视觉要件，缺一不可：
+     1. 出血 —— 图放大到明显超出版面边界，被裁掉一部分。
+        这样它读作「从纸外延伸进来的纹理」，而不是「贴上去的一张图」。
+        上一版失败正是因为图被限制在版面内（96% 宽 / 70% 高）且居中，
+        结果就是用户说的「放在中间」。
+     2. 贴边 —— 锚点落在版面四角或边缘之外，绝不放在视觉中心。
+     3. 极低不透明度 —— 8%~16%，只提供氛围，不抢文字。
+     4. 层级在正文之下 —— 必须在 drawDoc 之前绘制。
+   ================================================================== */
+
+/* 出血锚点表：cx/cy 是图形中心相对版面的比例，允许 <0 或 >1（即中心在版面之外）。
+   轮换使用，保证连续几张切片的贴图落在不同角落，翻页时有变化。 */
+var BGART_ANCHORS = [
+  {cx:-0.10, cy: 0.13, rot:-0.07, k:'左上'},
+  {cx: 1.12, cy: 0.20, rot: 0.06, k:'右上'},
+  {cx: 0.92, cy: 0.94, rot: 0.05, k:'右下'},
+  {cx: 0.04, cy: 1.04, rot:-0.05, k:'左下'},
+  {cx: 0.50, cy: 1.10, rot: 0.00, k:'底部横铺'},
+  {cx: 0.50, cy:-0.08, rot: 0.00, k:'顶部横铺'}
+];
+
+/* 图的明暗采样：深底上的深色剪影会完全隐形，需要染白。
+   缩到 24px 采样非透明像素的平均亮度，结果缓存。 */
+var artLumaCache = Object.create(null);
+function artLuma(im){
+  var key = (im.src || '') + '#' + im.naturalWidth + 'x' + im.naturalHeight;
+  if(artLumaCache[key] != null) return artLumaCache[key];
+  var v = 0.5;
+  try{
+    var N = 24;
+    var c = document.createElement('canvas');
+    c.width = N; c.height = N;
+    var x = c.getContext('2d');
+    x.drawImage(im, 0, 0, N, N);
+    var d = x.getImageData(0, 0, N, N).data;
+    var sum = 0, cnt = 0;
+    for(var i=0;i<d.length;i+=4){
+      if(d[i+3] < 40) continue;          /* 透明像素不计 */
+      sum += (0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2]) / 255;
+      cnt++;
+    }
+    if(cnt) v = sum / cnt;
+  }catch(e){}
+  artLumaCache[key] = v;
+  return v;
+}
+/* 用 source-in 把图「染」成纯色：保留 alpha 通道、只换颜色。
+   深底 + 暗图 → 染白，否则剪影在深色背景上等于不存在。 */
+var artTintCache = Object.create(null);
+function artTint(im, hex){
+  var key = (im.src || '') + '|' + hex;
+  if(artTintCache[key]) return artTintCache[key];
+  var c = document.createElement('canvas');
+  c.width = im.naturalWidth; c.height = im.naturalHeight;
+  var x = c.getContext('2d');
+  x.drawImage(im, 0, 0);
+  x.globalCompositeOperation = 'source-in';
+  x.fillStyle = hex;
+  x.fillRect(0, 0, c.width, c.height);
+  artTintCache[key] = c;
+  return c;
+}
+
+/* 取一张可用于绘制的图源（优先素材库原图，退回内置缩图） */
+function artSource(idx){
+  if(idx < 0) return null;
+  if(idx < matList.length && matList[idx] && matList[idx].url) return matList[idx].url;
+  if(typeof BUILTIN_MATS !== 'undefined' && BUILTIN_MATS[idx]) return BUILTIN_MATS[idx].d;
+  return null;
+}
+/* 保证图片已加载并挂上 ready promise（aiImgWait 依赖它） */
+function artImage(src){
+  if(!src) return null;
   var im = aiImgCache[src];
   if(!im){
     im = new Image();
-    /* 必须挂 ready promise，否则 aiImgWait 会认为「已缓存」直接跳过等待 */
     im.ready = new Promise(function(res){ im.onload = im.onerror = function(){ res(); }; });
     aiImgCache[src] = im;
     im.src = src;
   }
-  if(!im.complete || !im.naturalWidth) return false;
+  if(!im.complete || !im.naturalWidth) return null;
+  return im;
+}
 
-  var scalePct = Math.max(20, Math.min(160, st.deco.matArtScale || 70)) / 100;
-  var dw = W * scalePct, dh = dw * (im.naturalHeight / im.naturalWidth);
-  if(dw > W * 0.96){ dh *= W * 0.96 / dw; dw = W * 0.96; }
-  if(dh > H * 0.7){ dw *= H * 0.7 / dh; dh = H * 0.7; }
-
+/* 画一张出血贴图。返回是否真的画了。 */
+function bgArtOne(ctx, im, W, H, alpha, scalePct, anchor){
+  var sc = scalePct / 100;
+  /* 出血尺寸：以版面「对角线感」的较大边为基准，默认明显超出边界 */
+  var dw = Math.max(W, H * 0.62) * sc;
+  var dh = dw * (im.naturalHeight / im.naturalWidth);
   ctx.save();
   ctx.globalAlpha = alpha;
-  function put(x, y, rot, sc){
-    ctx.save();
-    ctx.translate(x, y);
-    if(rot) ctx.rotate(rot);
-    ctx.drawImage(im, -dw*sc/2, -dh*sc/2, dw*sc, dh*sc);
-    ctx.restore();
-  }
-  if(pos === 'center'){
-    put(W/2, H*0.45, 0, 1);
-  }else if(pos === 'corner'){
-    put(W*0.24, H*0.16, -0.06, 1);
-  }else if(pos === 'bottom'){
-    put(W/2, H*0.78, 0, 1);
-  }else{ /* scatter：几张错落分布，用切片号做偏移避免每张图重复 */
-    var n = Math.max(1, Math.min(4, st.deco.matArtCount || 2));
-    var seed = (slice.idx || 1) * 1.7;
-    for(var i=0;i<n;i++){
-      var fx = n === 1 ? 0.5 : (0.22 + 0.56 * ((i + 0.5) / n));
-      var fy = 0.22 + 0.56 * (((i % 2) ? 0.62 : 0.30) + (seed % 1) * 0.08);
-      var rot = (((i * 37 + Math.round(seed * 10)) % 100) / 100 - 0.5) * 0.24;
-      var s2 = 0.82 + ((i * 29 + Math.round(seed * 7)) % 40) / 100;
-      put(W * fx, H * fy, rot, s2);
-    }
-  }
+  ctx.translate(W * anchor.cx, H * anchor.cy);
+  if(anchor.rot) ctx.rotate(anchor.rot);
+  ctx.drawImage(im, -dw/2, -dh/2, dw, dh);
   ctx.restore();
   return true;
+}
+
+/* 主入口：把本切片分配到的贴图 + 手动贴图 全画在正文之下。
+   slice.arts 是 computeSlices 按 AI 锚点分配下来的图源数组。 */
+function bgArtDraw(ctx, W, H, slice, lightBg){
+  var list = [];
+  /* 1) AI 用 IMG:N 标定的背景贴图 */
+  if(slice && slice.arts && slice.arts.length){
+    for(var i=0;i<slice.arts.length && list.length<3;i++) list.push(slice.arts[i]);
+  }
+  /* 2) 手动加的一张（版式面板里的「素材底层贴图」） */
+  var midx = (st.deco.matArt | 0) - 1;
+  if(st.deco.frame && midx >= 0 && (st.deco.matArtPos || 'none') !== 'none'){
+    var ms = artSource(midx);
+    if(ms) list.push(ms);
+  }
+  if(!list.length) return false;
+
+  var alpha = Math.max(0, Math.min(60, st.deco.matArtAlpha != null ? st.deco.matArtAlpha : 12)) / 100;
+  if(alpha <= 0) return false;
+  var scalePct = Math.max(60, Math.min(320, st.deco.matArtScale || 150));
+
+  var gi = (slice && slice.idx ? slice.idx : 1) - 1;
+  var drawn = 0;
+  for(var k=0;k<list.length;k++){
+    var im = artImage(list[k]);
+    if(!im) continue;
+    /* 深底 + 暗图 → 染白，否则剪影隐形 */
+    var src = im;
+    if(!lightBg && artLuma(im) < 0.42) src = artTint(im, '#FFFFFF');
+    /* 锚点轮换：切片号 + 图序号，保证相邻切片落在不同角落 */
+    var anchor = BGART_ANCHORS[(gi + k) % BGART_ANCHORS.length];
+    /* 手动贴图按用户指定的位置走 */
+    if(k === list.length - 1 && midx >= 0 && (st.deco.matArtPos || 'none') !== 'none' && list.length > ((slice && slice.arts) ? slice.arts.length : 0)){
+      anchor = BGART_ANCHORS[Math.max(0, ['tl','tr','br','bl','bottom','top'].indexOf(st.deco.matArtPos))] || anchor;
+    }
+    bgArtOne(ctx, src, W, H, alpha, scalePct, anchor);
+    drawn++;
+  }
+  return drawn > 0;
+}
+
+/* 兼容旧调用点 */
+function matArtDraw(ctx, W, H, slice){
+  return bgArtDraw(ctx, W, H, slice, true);
 }
 
 function aiApplyDeco(dc){
@@ -3615,9 +3742,9 @@ var DECO_FMT = {
   guillocheAlpha:function(v){ return v + '%'; },
   watermarkAlpha:function(v){ return v + '%'; },
   watermarkScale:function(v){ return '占宽 ' + v + '%'; },
-  matArt:function(v){ return v <= 0 ? '不用' : ('第 ' + v + ' 张'); },
+  matArt:function(v){ return v <= 0 ? '不加' : ('第 ' + v + ' 张'); },
   matArtAlpha:function(v){ return v + '%'; },
-  matArtScale:function(v){ return '占宽 ' + v + '%'; }
+  matArtScale:function(v){ return v + '%' + (v > 100 ? ' · 出血' : ''); }
 };
 var DECO_LAB = {silhouetteCount:'vSilCount', grain:'vGrain', guillocheAlpha:'vGuilloche',
                 watermarkAlpha:'vWmAlpha', watermarkScale:'vWmScale',
@@ -3864,6 +3991,8 @@ Array.prototype.forEach.call(document.querySelectorAll('.seg'), function(seg){
       var v = b.dataset.v;
       st[key] = (key === 'width' || key === 'sliceHeight') ? parseInt(v, 10) : v;
       if(key === 'sliceMode') syncModeRows();
+      /* 贴图用法切换会改变排版高度（背景层不占高度，插图块占）→ 必须重排 */
+      if(key === 'imgMode'){ syncImgMode(); scheduleRender(30); }
       Array.prototype.forEach.call(seg.querySelectorAll('button'), function(x){ x.classList.remove('on'); });
       b.classList.add('on');
       scheduleRender(60); saveSoon();
@@ -3881,6 +4010,17 @@ function syncModeRows(){
   $('rowCount').style.display  = st.sliceMode === 'count'  ? 'block' : 'none';
   $('sliceModeTip').textContent = st.sliceMode === 'height' ? '拉长每张 → 张数变少' :
                                  (st.sliceMode === 'chars' ? '按整段切字' : '平均分成 N 张');
+}
+/* 贴图用法：隐入背景（默认）/ 插图块 */
+function syncImgMode(){
+  var bg = st.imgMode !== 'block';
+  if($('imgModeTip')) $('imgModeTip').textContent = bg ? '压在文字下' : '插在段落间';
+  if($('imgModeNote')) $('imgModeNote').innerHTML = bg
+    ? '贴图会<b>放大到超出版面边界被裁掉一部分</b>，以极低浓度铺在文字之下 —— 像纸面自身的纹理，不占版面高度、不会打断段落。'
+    : '贴图会作为<b>整幅矩形插进段落之间</b>，占版面高度。想要「插图」而不是「氛围」时用这个。';
+  Array.prototype.forEach.call(document.querySelectorAll('.seg[data-key="imgMode"] button'), function(b){
+    b.classList.toggle('on', b.dataset.v === st.imgMode);
+  });
 }
 $('inSliceChars').addEventListener('input', function(){
   st.sliceChars = Math.max(50, parseInt(this.value, 10) || 1200); scheduleRender(200); saveSoon();
@@ -4011,6 +4151,7 @@ function syncUI(){
   });
   syncColorInputs(); markSwatch(); markPresetChips(); markFontChips(); syncModeRows(); showBgUI();
   if(typeof syncDecoUI === 'function') syncDecoUI();
+  if(typeof syncImgMode === 'function') syncImgMode();
 }
 
 /* 折叠区统一交互 */
